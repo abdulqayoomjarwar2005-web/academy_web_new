@@ -14,7 +14,7 @@
 //   ip_address    TEXT
 //   created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 
-const db = require('../db');   // ← same db instance used by all other models
+const db = require('../config/db');   // ← same db instance used by all other models
 
 // ── DDL ──────────────────────────────────────────────────────────────────────
 

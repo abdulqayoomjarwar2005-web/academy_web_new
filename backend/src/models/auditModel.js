@@ -1,7 +1,7 @@
 // auditModel.js — Phase 12 (Audit Log System)
 //
 // Table: audit_logs
-//   id            INTEGER PRIMARY KEY AUTOINCREMENT
+//   id            SERIAL PRIMARY KEY
 //   user_id       INTEGER  (FK → users.id, nullable if system action)
 //   user_name     TEXT     (snapshot of name at time of action)
 //   user_role     TEXT     (snapshot of role at time of action)
@@ -12,35 +12,35 @@
 //   entity_id     INTEGER  (ID of affected record, nullable)
 //   entity_label  TEXT     (e.g. student name, receipt number)
 //   ip_address    TEXT
-//   created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+//   created_at    TIMESTAMPTZ DEFAULT NOW()
 
-const db = require('../config/db');   // ← same db instance used by all other models
+const pool = require('../config/db');   // ← same pg pool instance used by all other models
 
 // ── DDL ──────────────────────────────────────────────────────────────────────
 
-function createTable() {
-  db.prepare(`
+async function createTable() {
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS audit_logs (
-      id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+      id           SERIAL       PRIMARY KEY,
       user_id      INTEGER,
-      user_name    TEXT     NOT NULL DEFAULT 'System',
-      user_role    TEXT     NOT NULL DEFAULT 'system',
-      action       TEXT     NOT NULL,
-      category     TEXT     NOT NULL,
-      description  TEXT     NOT NULL,
+      user_name    TEXT         NOT NULL DEFAULT 'System',
+      user_role    TEXT         NOT NULL DEFAULT 'system',
+      action       TEXT         NOT NULL,
+      category     TEXT         NOT NULL,
+      description  TEXT         NOT NULL,
       entity_type  TEXT,
       entity_id    INTEGER,
       entity_label TEXT,
       ip_address   TEXT,
-      created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
     )
-  `).run();
+  `);
 
   // Index for common query patterns
-  db.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_created  ON audit_logs (created_at DESC)`).run();
-  db.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_user     ON audit_logs (user_id)`).run();
-  db.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_category ON audit_logs (category)`).run();
-  db.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_action   ON audit_logs (action)`).run();
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_created  ON audit_logs (created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_user     ON audit_logs (user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_category ON audit_logs (category)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_action   ON audit_logs (action)`);
 }
 
 // ── Write ─────────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ function createTable() {
  * @param {string|null}  [params.entityLabel]
  * @param {string|null}  [params.ipAddress]
  */
-function log({
+async function log({
   userId       = null,
   userName     = 'System',
   userRole     = 'system',
@@ -72,15 +72,16 @@ function log({
   ipAddress    = null,
 }) {
   try {
-    db.prepare(`
+    await pool.query(
+      `
       INSERT INTO audit_logs
         (user_id, user_name, user_role, action, category, description,
          entity_type, entity_id, entity_label, ip_address)
       VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      userId, userName, userRole, action, category, description,
-      entityType, entityId, entityLabel, ipAddress,
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `,
+      [userId, userName, userRole, action, category, description,
+       entityType, entityId, entityLabel, ipAddress],
     );
   } catch (err) {
     // Audit logging must never crash the main request
@@ -94,7 +95,7 @@ function log({
  * Fetch paginated audit logs with optional filters.
  * Accessible by owner and admin only (enforced in route).
  */
-function getLogs({
+async function getLogs({
   page      = 1,
   limit     = 50,
   category  = null,
@@ -108,71 +109,95 @@ function getLogs({
   const conditions = [];
   const params     = [];
 
-  if (category) { conditions.push('category = ?');        params.push(category); }
-  if (action)   { conditions.push('action = ?');          params.push(action); }
-  if (userId)   { conditions.push('user_id = ?');         params.push(userId); }
-  if (dateFrom) { conditions.push('created_at >= ?');     params.push(dateFrom + ' 00:00:00'); }
-  if (dateTo)   { conditions.push('created_at <= ?');     params.push(dateTo   + ' 23:59:59'); }
+  const addCondition = (clause, value) => {
+    params.push(value);
+    conditions.push(clause.replace('?', `$${params.length}`));
+  };
+
+  if (category) addCondition('category = ?', category);
+  if (action)   addCondition('action = ?', action);
+  if (userId)   addCondition('user_id = ?', userId);
+  if (dateFrom) addCondition('created_at >= ?', dateFrom + ' 00:00:00');
+  if (dateTo)   addCondition('created_at <= ?', dateTo   + ' 23:59:59');
   if (search)   {
-    conditions.push('(description LIKE ? OR entity_label LIKE ? OR user_name LIKE ?)');
     const s = `%${search}%`;
     params.push(s, s, s);
+    conditions.push(
+      `(description ILIKE $${params.length - 2} OR entity_label ILIKE $${params.length - 1} OR user_name ILIKE $${params.length})`
+    );
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  const total = db.prepare(`SELECT COUNT(*) AS cnt FROM audit_logs ${where}`).get(...params)?.cnt ?? 0;
+  const totalResult = await pool.query(`SELECT COUNT(*) AS cnt FROM audit_logs ${where}`, params);
+  const total = parseInt(totalResult.rows[0]?.cnt, 10) || 0;
 
-  const rows = db.prepare(`
+  const rowsResult = await pool.query(
+    `
     SELECT * FROM audit_logs
     ${where}
     ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `).all(...params, limit, offset);
+    LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `,
+    [...params, limit, offset],
+  );
 
-  return { total, page, limit, rows };
+  return { total, page, limit, rows: rowsResult.rows };
 }
 
 /**
  * Get the distinct list of categories that have been logged.
  */
-function getCategories() {
-  return db.prepare(`SELECT DISTINCT category FROM audit_logs ORDER BY category`).all().map(r => r.category);
+async function getCategories() {
+  const result = await pool.query(`SELECT DISTINCT category FROM audit_logs ORDER BY category`);
+  return result.rows.map(r => r.category);
 }
 
 /**
  * Get the distinct list of actions, optionally filtered by category.
  */
-function getActions(category = null) {
+async function getActions(category = null) {
   if (category) {
-    return db.prepare(`SELECT DISTINCT action FROM audit_logs WHERE category = ? ORDER BY action`).all(category).map(r => r.action);
+    const result = await pool.query(
+      `SELECT DISTINCT action FROM audit_logs WHERE category = $1 ORDER BY action`,
+      [category],
+    );
+    return result.rows.map(r => r.action);
   }
-  return db.prepare(`SELECT DISTINCT action FROM audit_logs ORDER BY action`).all().map(r => r.action);
+  const result = await pool.query(`SELECT DISTINCT action FROM audit_logs ORDER BY action`);
+  return result.rows.map(r => r.action);
 }
 
 /**
  * Summary stats for the dashboard card.
  */
-function getSummary() {
-  const total      = db.prepare(`SELECT COUNT(*) AS cnt FROM audit_logs`).get()?.cnt ?? 0;
-  const today      = db.prepare(`SELECT COUNT(*) AS cnt FROM audit_logs WHERE DATE(created_at) = DATE('now')`).get()?.cnt ?? 0;
-  const thisWeek   = db.prepare(`SELECT COUNT(*) AS cnt FROM audit_logs WHERE created_at >= DATE('now','-7 days')`).get()?.cnt ?? 0;
-  const thisMonth  = db.prepare(`SELECT COUNT(*) AS cnt FROM audit_logs WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m','now')`).get()?.cnt ?? 0;
+async function getSummary() {
+  const totalResult     = await pool.query(`SELECT COUNT(*) AS cnt FROM audit_logs`);
+  const todayResult     = await pool.query(`SELECT COUNT(*) AS cnt FROM audit_logs WHERE created_at::date = CURRENT_DATE`);
+  const weekResult      = await pool.query(`SELECT COUNT(*) AS cnt FROM audit_logs WHERE created_at >= NOW() - INTERVAL '7 days'`);
+  const monthResult     = await pool.query(`SELECT COUNT(*) AS cnt FROM audit_logs WHERE date_trunc('month', created_at) = date_trunc('month', NOW())`);
 
-  const byCategory = db.prepare(`
+  const byCategoryResult = await pool.query(`
     SELECT category, COUNT(*) AS cnt FROM audit_logs GROUP BY category ORDER BY cnt DESC
-  `).all();
+  `);
 
-  const recentUsers = db.prepare(`
+  const recentUsersResult = await pool.query(`
     SELECT user_name, user_role, COUNT(*) AS cnt
     FROM audit_logs
-    WHERE created_at >= DATE('now','-7 days')
-    GROUP BY user_id
+    WHERE created_at >= NOW() - INTERVAL '7 days'
+    GROUP BY user_id, user_name, user_role
     ORDER BY cnt DESC
     LIMIT 5
-  `).all();
+  `);
 
-  return { total, today, thisWeek, thisMonth, byCategory, recentUsers };
+  return {
+    total:     parseInt(totalResult.rows[0]?.cnt, 10) || 0,
+    today:     parseInt(todayResult.rows[0]?.cnt, 10) || 0,
+    thisWeek:  parseInt(weekResult.rows[0]?.cnt, 10) || 0,
+    thisMonth: parseInt(monthResult.rows[0]?.cnt, 10) || 0,
+    byCategory: byCategoryResult.rows,
+    recentUsers: recentUsersResult.rows,
+  };
 }
 
 module.exports = { createTable, log, getLogs, getCategories, getActions, getSummary };

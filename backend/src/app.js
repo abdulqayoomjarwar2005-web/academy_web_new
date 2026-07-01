@@ -39,7 +39,9 @@ const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13 
 
 // ── Phase 12: ensure audit_logs table exists ─────────────────────────────────
 const auditModel = require('./models/auditModel');
-auditModel.createTable();
+auditModel.createTable().catch((err) =>
+  console.error('[Audit] createTable error:', err.message)
+);
 
 // ── Phase 13: ensure notifications table exists ──────────────────────────────
 const notificationModel = require('./models/notificationModel');
@@ -49,21 +51,9 @@ notificationModel.createTable().catch((err) =>
 
 const app = express();
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Postman)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Allow any vercel.app subdomain
-      if (/\.vercel\.app$/.test(origin)) return callback(null, true);
-      callback(new Error('Not allowed by CORS'));
-    },
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   })
 );

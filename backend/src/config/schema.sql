@@ -231,7 +231,7 @@ GROUP BY a.attendance_date
 ORDER BY a.attendance_date DESC;
 
 CREATE INDEX IF NOT EXISTS idx_attendance_month
-    ON attendance (DATE_TRUNC('month', attendance_date));
+       ON attendance (DATE_TRUNC('month', attendance_date::timestamp));
 
 -- =========================================================
 -- PHASE 6: Fee Management

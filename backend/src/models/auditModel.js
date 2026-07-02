@@ -2,14 +2,14 @@
 //
 // Table: audit_logs
 //   id            SERIAL PRIMARY KEY
-//   user_id       INTEGER  (FK → users.id, nullable if system action)
+//   user_id       UUID     (FK → users.id, nullable if system action)
 //   user_name     TEXT     (snapshot of name at time of action)
 //   user_role     TEXT     (snapshot of role at time of action)
 //   action        TEXT     (e.g. "STUDENT_ADDED", "FEE_UPDATED")
 //   category      TEXT     (e.g. "Students", "Fees", "Expenses", "Attendance", "Users")
 //   description   TEXT     (human-readable summary)
 //   entity_type   TEXT     (e.g. "student", "fee", "expense")
-//   entity_id     INTEGER  (ID of affected record, nullable)
+//   entity_id     UUID     (ID of affected record, nullable)
 //   entity_label  TEXT     (e.g. student name, receipt number)
 //   ip_address    TEXT
 //   created_at    TIMESTAMPTZ DEFAULT NOW()
@@ -22,14 +22,14 @@ async function createTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id           SERIAL       PRIMARY KEY,
-      user_id      INTEGER,
+      user_id      UUID,
       user_name    TEXT         NOT NULL DEFAULT 'System',
       user_role    TEXT         NOT NULL DEFAULT 'system',
       action       TEXT         NOT NULL,
       category     TEXT         NOT NULL,
       description  TEXT         NOT NULL,
       entity_type  TEXT,
-      entity_id    INTEGER,
+      entity_id    UUID,
       entity_label TEXT,
       ip_address   TEXT,
       created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()

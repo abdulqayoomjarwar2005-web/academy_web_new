@@ -5,7 +5,7 @@ const auditModel = require('../models/auditModel');
 // GET /api/audit
 // Query params: page, limit, category, action, userId, dateFrom, dateTo, search
 // Access: owner + admin only (enforced in route)
-exports.getLogs = (req, res) => {
+exports.getLogs = async (req, res) => {
   try {
     const {
       page     = 1,
@@ -18,12 +18,12 @@ exports.getLogs = (req, res) => {
       search   = '',
     } = req.query;
 
-    const result = auditModel.getLogs({
+    const result = await auditModel.getLogs({
       page:     parseInt(page,  10) || 1,
       limit:    Math.min(parseInt(limit, 10) || 50, 200),
       category: category  || null,
       action:   action    || null,
-      userId:   userId    ? parseInt(userId, 10) : null,
+      userId:   userId    || null,
       dateFrom: dateFrom  || null,
       dateTo:   dateTo    || null,
       search:   search    || null,
@@ -38,9 +38,9 @@ exports.getLogs = (req, res) => {
 
 // GET /api/audit/summary
 // Access: owner + admin only
-exports.getSummary = (req, res) => {
+exports.getSummary = async (req, res) => {
   try {
-    const summary = auditModel.getSummary();
+    const summary = await auditModel.getSummary();
     res.json(summary);
   } catch (err) {
     console.error('[AuditController] getSummary error:', err);
@@ -51,11 +51,11 @@ exports.getSummary = (req, res) => {
 // GET /api/audit/filters
 // Returns available categories and actions for filter dropdowns
 // Access: owner + admin only
-exports.getFilters = (req, res) => {
+exports.getFilters = async (req, res) => {
   try {
     const { category = '' } = req.query;
-    const categories = auditModel.getCategories();
-    const actions    = auditModel.getActions(category || null);
+    const categories = await auditModel.getCategories();
+    const actions    = await auditModel.getActions(category || null);
     res.json({ categories, actions });
   } catch (err) {
     console.error('[AuditController] getFilters error:', err);

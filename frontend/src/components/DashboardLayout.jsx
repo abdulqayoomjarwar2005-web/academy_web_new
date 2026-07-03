@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import logo from '../assets/logo.png';
 
 const roleLabels = { owner: 'Owner', admin: 'Administrator', teacher: 'Teacher' };
 const roleBadgeStyle = {
@@ -19,14 +20,14 @@ const Icon = ({ d, size = 15 }) => (
 
 const navItems = (can) => [
   { to: '/students',              label: 'Students',      icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', show: true },
-  { to: '/teachers',             label: 'Faculty',       icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', show: can.teachers },
+  { to: '/teachers',             label: 'Teachers',      icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', show: can.teachers },
   { to: '/attendance',           label: 'Attendance',    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', show: true },
   { to: '/fees/dashboard',       label: 'Fees',          icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', show: true },
-  { to: '/defaulters',           label: 'Defaulters',    icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', show: true, alert: true },
+  { to: '/defaulters',           label: 'Unpaid Fees',   icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', show: true, alert: true },
   { to: '/expenses/dashboard',   label: 'Expenses',      icon: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z', show: can.expenses },
-  { to: '/profit-loss/dashboard',label: 'P & L',         icon: 'M18 20V10M12 20V4M6 20v-6', show: can.profitLoss },
+  { to: '/profit-loss/dashboard',label: 'Profit & Loss', icon: 'M18 20V10M12 20V4M6 20v-6', show: can.profitLoss },
   { to: '/reports/export',       label: 'Reports',       icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8', show: true },
-  { to: '/audit',                label: 'Audit Log',     icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', show: can.audit },
+  { to: '/audit',                label: 'Activity Log',  icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', show: can.audit },
 ];
 
 const DashboardLayout = ({ children, title }) => {
@@ -61,8 +62,8 @@ const DashboardLayout = ({ children, title }) => {
 
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-            <div style={{ width: 36, height: 36, background: 'rgba(201,168,76,0.15)', border: '1.5px solid rgba(201,168,76,0.45)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
+            <div style={{ width: 40, height: 40, background: '#F4F6F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 3 }}>
+              <img src={logo} alt="NBIL logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div className="hidden sm:block">
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.88rem', fontWeight: 600, color: '#F4F6F9', lineHeight: 1.2 }}>Nation Builders Institute</div>

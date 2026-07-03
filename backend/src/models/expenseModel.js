@@ -164,9 +164,10 @@ const ExpenseModel = {
          e.created_at, e.updated_at,
          u1.full_name AS created_by_name,
          u2.full_name AS updated_by_name
-       ${baseQuery}
+       FROM expenses e
        LEFT JOIN users u1 ON u1.id = e.created_by
        LEFT JOIN users u2 ON u2.id = e.updated_by
+       ${whereClause}
        ORDER BY ${sortColumn} ${sortDirection}
        LIMIT $${idx} OFFSET $${idx + 1}`,
       dataParams

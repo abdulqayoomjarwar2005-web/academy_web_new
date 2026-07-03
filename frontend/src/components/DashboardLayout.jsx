@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
-import logo from '../assets/logo.png';
 
 const roleLabels = { owner: 'Owner', admin: 'Administrator', teacher: 'Teacher' };
 const roleBadgeStyle = {
@@ -61,8 +60,8 @@ const DashboardLayout = ({ children, title }) => {
 
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-            <div style={{ width: 40, height: 40, background: '#F4F6F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 3 }}>
-              <img src={logo} alt="NBIL logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <div style={{ width: 36, height: 36, background: 'rgba(201,168,76,0.15)', border: '1.5px solid rgba(201,168,76,0.45)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
             </div>
             <div className="hidden sm:block">
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.88rem', fontWeight: 600, color: '#F4F6F9', lineHeight: 1.2 }}>Nation Builders Institute</div>

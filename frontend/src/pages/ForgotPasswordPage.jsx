@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail]         = useState('');
   const [message, setMessage]     = useState('');
   const [error, setError]         = useState('');
@@ -14,6 +15,9 @@ const ForgotPasswordPage = () => {
     try {
       const { data } = await api.post('/auth/forgot-password', { email });
       setMessage(data.message);
+      setTimeout(() => {
+        navigate('/reset-password', { state: { email } });
+      }, 900);
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally { setSubmit(false); }
@@ -48,7 +52,7 @@ const ForgotPasswordPage = () => {
               Reset Password
             </h1>
             <p style={{ fontSize: '0.82rem', color: '#8A9BB0', marginBottom: '1.75rem', lineHeight: 1.6 }}>
-              Enter your registered email address and we'll send you a secure reset link.
+              Enter your registered email address and we'll send you a 6-digit verification code.
             </p>
 
             {message && (
@@ -76,7 +80,7 @@ const ForgotPasswordPage = () => {
               </div>
               <button type="submit" disabled={isSubmitting}
                 style={{ width: '100%', padding: '0.8rem', borderRadius: 4, border: 'none', background: isSubmitting ? '#8A9BB0' : 'linear-gradient(135deg, #0B1F3A, #1A3557)', color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer', letterSpacing: '0.04em' }}>
-                {isSubmitting ? 'Sending…' : 'Send Reset Link'}
+                {isSubmitting ? 'Sending…' : 'Send Verification Code'}
               </button>
             </form>
 

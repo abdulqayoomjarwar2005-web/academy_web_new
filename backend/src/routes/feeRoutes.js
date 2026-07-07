@@ -18,10 +18,12 @@ const {
 
 const authenticate     = require('../middleware/authenticate');
 const authorize        = require('../middleware/authorize');
+const attachTeacherClasses = require('../middleware/teacherScope');
 const handleValidation = require('../middleware/validate');
 
 // All fee routes require authentication
 router.use(authenticate);
+router.use(attachTeacherClasses);
 
 const idParam   = [param('id').isUUID().withMessage('Invalid fee id')];
 const uuidParam = [param('studentId').isUUID().withMessage('Invalid student id')];
@@ -33,10 +35,11 @@ const uuidParam = [param('studentId').isUUID().withMessage('Invalid student id')
 /**
  * GET /api/fees/dashboard
  * Collection stats: today / week / month / year.
+ * Owner, Admin only — shows financial totals, not exposed to teachers.
  */
 router.get(
   '/dashboard',
-  authorize('owner', 'admin', 'teacher'),
+  authorize('owner', 'admin'),
   getDashboard
 );
 

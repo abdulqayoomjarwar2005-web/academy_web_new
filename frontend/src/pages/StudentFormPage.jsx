@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import { getStudent, createStudent, updateStudent, STATUS_OPTIONS } from '../utils/studentApi';
+import { getMyClasses } from '../utils/teacherApi';
+import { useAuth } from '../context/AuthContext';
 
 const emptyForm = {
   rollNumber: '',
@@ -19,6 +21,8 @@ const StudentFormPage = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher';
 
   const [form, setForm] = useState(emptyForm);
   const [studentCode, setStudentCode] = useState('');
@@ -26,6 +30,13 @@ const StudentFormPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [myClasses, setMyClasses] = useState([]);
+
+  useEffect(() => {
+    if (isTeacher) {
+      getMyClasses().then(setMyClasses).catch(() => setMyClasses([]));
+    }
+  }, [isTeacher]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -158,14 +169,28 @@ const StudentFormPage = () => {
           </Field>
 
           <Field label="Class" error={fieldErrors.class}>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Grade 9"
-              value={form.class}
-              onChange={handleChange('class')}
-              className={inputClass(fieldErrors.class)}
-            />
+            {isTeacher ? (
+              <select
+                required
+                value={form.class}
+                onChange={handleChange('class')}
+                className={inputClass(fieldErrors.class)}
+              >
+                <option value="">Select class…</option>
+                {myClasses.map((cls) => (
+                  <option key={cls} value={cls}>{cls}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                required
+                placeholder="e.g. Grade 9"
+                value={form.class}
+                onChange={handleChange('class')}
+                className={inputClass(fieldErrors.class)}
+              />
+            )}
           </Field>
 
           <Field label="Batch" error={fieldErrors.batch}>

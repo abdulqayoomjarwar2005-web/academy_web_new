@@ -17,7 +17,13 @@ const getMarkPage = async (req, res) => {
       return res.status(400).json({ message: 'date query parameter is required (YYYY-MM-DD)' });
     }
 
-    const students = await AttendanceModel.getStudentsForDate(date);
+    const classIn = req.user.role === 'teacher' ? (req.user.classes || []) : undefined;
+
+    if (classIn && classIn.length === 0) {
+      return res.status(403).json({ message: 'You have not been assigned to any class yet. Contact the administrator.' });
+    }
+
+    const students = await AttendanceModel.getStudentsForDate(date, classIn);
     const summary = await AttendanceModel.getDaySummary(date);
     const isLocked = await AttendanceModel.isDateLocked(date);
 
@@ -63,6 +69,17 @@ const submitAttendance = async (req, res) => {
       }
     }
 
+    // Teachers may only submit attendance for students in their own assigned class(es)
+    if (req.user.role === 'teacher') {
+      const assignedClasses = req.user.classes || [];
+      const studentIds = entries.map((e) => e.studentId);
+      const entryClasses = await AttendanceModel.getClassesForStudentIds(studentIds);
+      const outsideScope = entryClasses.some((cls) => !assignedClasses.includes(cls));
+      if (outsideScope) {
+        return res.status(403).json({ message: 'You can only mark attendance for students in your assigned class(es)' });
+      }
+    }
+
     await AttendanceModel.bulkSaveAndSubmit(entries, req.user.id, date);
 
     return res.status(200).json({ message: 'Attendance submitted and locked successfully' });
@@ -88,6 +105,13 @@ const updateAttendance = async (req, res) => {
       return res.status(400).json({
         message: `Invalid status. Allowed: ${AttendanceModel.ALLOWED_STATUSES.join(', ')}`,
       });
+    }
+
+    if (req.user.role === 'teacher') {
+      const recordClass = await AttendanceModel.getClassForAttendanceId(attendanceId);
+      if (!recordClass || !(req.user.classes || []).includes(recordClass)) {
+        return res.status(403).json({ message: 'You do not have access to this attendance record' });
+      }
     }
 
     const updated = await AttendanceModel.updateOne(attendanceId, status);
@@ -118,11 +142,18 @@ const getHistory = async (req, res) => {
   try {
     const { date, studentId, status, className, section, page, limit } = req.query;
 
+    let classIn;
+    if (req.user.role === 'teacher') {
+      const assignedClasses = req.user.classes || [];
+      classIn = className ? assignedClasses.filter((c) => c === className) : assignedClasses;
+    }
+
     const result = await AttendanceModel.getHistory({
       date,
       studentId,
       status,
-      className,
+      className: classIn ? undefined : className,
+      classIn,
       section,
       page,
       limit,

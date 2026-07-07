@@ -200,6 +200,43 @@ const TeacherModel = {
     );
     return parseInt(result.rows[0].total, 10);
   },
+
+  // -------------------------------------------------------
+  // LOGIN ACCOUNT LINKING (Phase 14 — Teacher Portal)
+  // -------------------------------------------------------
+
+  /**
+   * Link a teacher HR record to a `users` login account.
+   */
+  async linkUserAccount(id, userId) {
+    const result = await pool.query(
+      `UPDATE teachers SET user_id = $1 WHERE id = $2 RETURNING *`,
+      [userId, id]
+    );
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Find the teacher HR record linked to a given login user id.
+   */
+  async findByUserId(userId) {
+    const result = await pool.query(`SELECT * FROM teachers WHERE user_id = $1`, [userId]);
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Get a teacher's login account info (email, active state) for the admin UI.
+   */
+  async getAccountInfo(id) {
+    const result = await pool.query(
+      `SELECT t.id AS teacher_id, t.user_id, u.email, u.is_active, u.must_change_password
+       FROM teachers t
+       LEFT JOIN users u ON u.id = t.user_id
+       WHERE t.id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
+  },
 };
 
 module.exports = TeacherModel;

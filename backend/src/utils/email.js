@@ -47,4 +47,32 @@ const sendPasswordResetEmail = async (toEmail, resetToken) => {
   await getTransporter().sendMail(mailOptions);
 };
 
-module.exports = { sendPasswordResetEmail };
+/**
+ * Send a one-time password (OTP) for resetting a password.
+ * If SMTP is not configured (development), logs the OTP to console instead.
+ */
+const sendOtpEmail = async (toEmail, otp) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log('--------------------------------------------------');
+    console.log(`SMTP not configured. Password reset OTP (dev mode) for ${toEmail}:`);
+    console.log(otp);
+    console.log('--------------------------------------------------');
+    return;
+  }
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: toEmail,
+    subject: 'Nation Builders Institute of Learning Larkana - Password Reset Code',
+    html: `
+      <p>You requested a password reset.</p>
+      <p>Your one-time verification code is:</p>
+      <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">${otp}</p>
+      <p>This code expires in 10 minutes. If you did not request this, please ignore this email.</p>
+    `,
+  };
+
+  await getTransporter().sendMail(mailOptions);
+};
+
+module.exports = { sendPasswordResetEmail, sendOtpEmail };

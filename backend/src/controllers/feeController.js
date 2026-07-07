@@ -1,7 +1,23 @@
 const FeeModel = require('../models/feeModel');
 
 // -------------------------------------------------------
+// TEACHER VISIBILITY (Phase 14 — Teacher Portal)
+// Teachers can see whether a student's fee is paid/unpaid, but never amounts.
+// -------------------------------------------------------
+const AMOUNT_FIELDS = ['amount', 'amount_paid', 'monthly_fee', 'outstanding_balance', 'total_billed', 'total_paid'];
+
+const sanitizeFeeForTeacher = (fee) => {
+  if (!fee) return fee;
+  const clean = { ...fee };
+  AMOUNT_FIELDS.forEach((field) => delete clean[field]);
+  return clean;
+};
+
+const sanitizeFeeListForTeacher = (fees) => (Array.isArray(fees) ? fees.map(sanitizeFeeForTeacher) : fees);
+
+// -------------------------------------------------------
 // GET /api/fees/dashboard
+// Financial totals — owner/admin only (see feeRoutes.js).
 // -------------------------------------------------------
 const getDashboard = async (req, res) => {
   try {
@@ -22,11 +38,19 @@ const listFees = async (req, res) => {
     const { studentId, month, status, class: className, batch, search, sortBy, sortDir, page, limit } =
       req.query;
 
+    const isTeacher = req.user.role === 'teacher';
+    let classIn;
+    if (isTeacher) {
+      const assignedClasses = req.user.classes || [];
+      classIn = className ? assignedClasses.filter((c) => c === className) : assignedClasses;
+    }
+
     const result = await FeeModel.list({
       studentId,
       month,
       status,
-      class: className,
+      class: classIn ? undefined : className,
+      classIn,
       batch,
       search,
       sortBy,
@@ -34,6 +58,10 @@ const listFees = async (req, res) => {
       page,
       limit,
     });
+
+    if (isTeacher) {
+      result.data = sanitizeFeeListForTeacher(result.data);
+    }
 
     return res.status(200).json(result);
   } catch (err) {
@@ -49,6 +77,14 @@ const getFee = async (req, res) => {
   try {
     const fee = await FeeModel.findById(req.params.id);
     if (!fee) return res.status(404).json({ message: 'Fee record not found' });
+
+    if (req.user.role === 'teacher') {
+      if (!(req.user.classes || []).includes(fee.class)) {
+        return res.status(403).json({ message: 'You do not have access to this record' });
+      }
+      return res.status(200).json({ fee: sanitizeFeeForTeacher(fee) });
+    }
+
     return res.status(200).json({ fee });
   } catch (err) {
     console.error('Get fee error:', err);
@@ -63,6 +99,14 @@ const getByReceipt = async (req, res) => {
   try {
     const fee = await FeeModel.findByReceipt(req.params.receiptNumber);
     if (!fee) return res.status(404).json({ message: 'Receipt not found' });
+
+    if (req.user.role === 'teacher') {
+      if (!(req.user.classes || []).includes(fee.class)) {
+        return res.status(403).json({ message: 'You do not have access to this record' });
+      }
+      return res.status(200).json({ fee: sanitizeFeeForTeacher(fee) });
+    }
+
     return res.status(200).json({ fee });
   } catch (err) {
     console.error('Get by receipt error:', err);
@@ -77,6 +121,16 @@ const getByReceipt = async (req, res) => {
 const getDueMonths = async (req, res) => {
   try {
     const months = await FeeModel.getDueMonths(req.params.studentId);
+
+    if (req.user.role === 'teacher') {
+      const assignedClasses = req.user.classes || [];
+      const studentClass = months[0]?.class;
+      if (studentClass && !assignedClasses.includes(studentClass)) {
+        return res.status(403).json({ message: 'You do not have access to this student' });
+      }
+      return res.status(200).json({ dueMonths: sanitizeFeeListForTeacher(months) });
+    }
+
     return res.status(200).json({ dueMonths: months });
   } catch (err) {
     console.error('Get due months error:', err);

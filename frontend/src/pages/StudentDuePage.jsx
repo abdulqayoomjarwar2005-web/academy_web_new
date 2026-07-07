@@ -101,7 +101,7 @@ const StudentDuePage = () => {
               <div className="mt-1 text-xs text-ink/40">
                 {studentInfo.code} · {studentInfo.class} · {studentInfo.batch}
               </div>
-              {dueMonths.length > 0 && (
+              {!isReadOnly && dueMonths.length > 0 && (
                 <div className="mt-3 inline-block rounded-sm bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
                   Total Due: Rs {fmt(totalDue)}
                 </div>
@@ -125,9 +125,9 @@ const StudentDuePage = () => {
                 <thead>
                   <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
                     <th className="px-4 py-3">Month</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
-                    <th className="px-4 py-3 text-right">Paid</th>
-                    <th className="px-4 py-3 text-right">Balance</th>
+                    {!isReadOnly && <th className="px-4 py-3 text-right">Amount</th>}
+                    {!isReadOnly && <th className="px-4 py-3 text-right">Paid</th>}
+                    {!isReadOnly && <th className="px-4 py-3 text-right">Balance</th>}
                     <th className="px-4 py-3">Status</th>
                     {!isReadOnly && <th className="px-4 py-3">Action</th>}
                   </tr>
@@ -138,11 +138,17 @@ const StudentDuePage = () => {
                     return (
                       <tr key={fee.id} className="hover:bg-ink/2">
                         <td className="px-4 py-3 font-medium text-ink">{monthLabel(fee.fee_month)}</td>
-                        <td className="px-4 py-3 text-right text-ink/70">Rs {fmt(fee.amount)}</td>
-                        <td className="px-4 py-3 text-right text-ink/70">
-                          {parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium text-red-600">Rs {fmt(balance)}</td>
+                        {!isReadOnly && (
+                          <td className="px-4 py-3 text-right text-ink/70">Rs {fmt(fee.amount)}</td>
+                        )}
+                        {!isReadOnly && (
+                          <td className="px-4 py-3 text-right text-ink/70">
+                            {parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}
+                          </td>
+                        )}
+                        {!isReadOnly && (
+                          <td className="px-4 py-3 text-right font-medium text-red-600">Rs {fmt(balance)}</td>
+                        )}
                         <td className="px-4 py-3">
                           <StatusBadge status={fee.status} />
                         </td>
@@ -161,11 +167,13 @@ const StudentDuePage = () => {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-ink/10 bg-ink/3 text-xs font-semibold text-ink">
-                    <td className="px-4 py-2" colSpan={3}>Total Due</td>
-                    <td className="px-4 py-2 text-right text-red-600">Rs {fmt(totalDue)}</td>
-                    <td colSpan={isReadOnly ? 1 : 2} />
-                  </tr>
+                  {!isReadOnly && (
+                    <tr className="border-t border-ink/10 bg-ink/3 text-xs font-semibold text-ink">
+                      <td className="px-4 py-2" colSpan={3}>Total Due</td>
+                      <td className="px-4 py-2 text-right text-red-600">Rs {fmt(totalDue)}</td>
+                      <td colSpan={isReadOnly ? 1 : 2} />
+                    </tr>
+                  )}
                 </tfoot>
               </table>
             </div>

@@ -203,6 +203,7 @@ const FeeModel = {
     month,       // YYYY-MM
     status,
     class: className,
+    classIn,
     batch,
     search,
     sortBy = 'fee_month',
@@ -210,6 +211,16 @@ const FeeModel = {
     page = 1,
     limit = 20,
   }) {
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+
+    if (Array.isArray(classIn) && classIn.length === 0) {
+      return {
+        data: [],
+        pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 1 },
+      };
+    }
+
     const conditions = [];
     const params = [];
     let idx = 1;
@@ -232,7 +243,11 @@ const FeeModel = {
       idx++;
     }
 
-    if (className) {
+    if (Array.isArray(classIn) && classIn.length > 0) {
+      conditions.push(`s.class = ANY($${idx})`);
+      params.push(classIn);
+      idx++;
+    } else if (className) {
       conditions.push(`s.class = $${idx}`);
       params.push(className);
       idx++;
@@ -266,8 +281,6 @@ const FeeModel = {
     const sortColumn = ALLOWED_SORT[sortBy] || 'f.fee_month';
     const sortDirection = sortDir.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
-    const safePage = Math.max(parseInt(page, 10) || 1, 1);
     const offset = (safePage - 1) * safeLimit;
 
     const baseQuery = `

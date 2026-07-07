@@ -106,9 +106,9 @@ const App = () => (
         <Route path="/reports/monthly" element={<ProtectedRoute><MonthlyReportPage /></ProtectedRoute>} />
 
         {/* Fees (Phase 6) */}
-        <Route path="/fees/dashboard"              element={<ProtectedRoute><FeeDashboardPage /></ProtectedRoute>} />
+        <Route path="/fees/dashboard"              element={<ProtectedRoute roles={['owner','admin']}><FeeDashboardPage /></ProtectedRoute>} />
         <Route path="/fees/generate"               element={<ProtectedRoute roles={['owner','admin']}><GenerateFeesPage /></ProtectedRoute>} />
-        <Route path="/fees/receipt/:receiptNumber" element={<ProtectedRoute><FeeReceiptPage /></ProtectedRoute>} />
+        <Route path="/fees/receipt/:receiptNumber" element={<ProtectedRoute roles={['owner','admin']}><FeeReceiptPage /></ProtectedRoute>} />
         <Route path="/fees/due/:studentId"         element={<ProtectedRoute><StudentDuePage /></ProtectedRoute>} />
         <Route path="/fees"                        element={<ProtectedRoute><FeeListPage /></ProtectedRoute>} />
 

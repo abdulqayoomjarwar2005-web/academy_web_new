@@ -66,6 +66,29 @@ const UserModel = {
     );
     return result.rows[0] || null;
   },
+
+  /**
+   * Activate or deactivate a login account (e.g. when a teacher leaves).
+   */
+  async setActive(userId, isActive) {
+    const result = await pool.query(
+      `UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, is_active`,
+      [isActive, userId]
+    );
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Used when an admin sets/resets a password on someone else's behalf
+   * (e.g. issuing a temporary password for a teacher). Forces the user
+   * to change it on next login, unlike a self-service password change.
+   */
+  async adminSetPassword(userId, passwordHash) {
+    await pool.query(
+      `UPDATE users SET password_hash = $1, must_change_password = TRUE WHERE id = $2`,
+      [passwordHash, userId]
+    );
+  },
 };
 
 module.exports = UserModel;

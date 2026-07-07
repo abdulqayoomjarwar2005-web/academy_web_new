@@ -220,12 +220,14 @@ const FeeListPage = () => {
 
       {/* Actions */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link
-          to="/fees/dashboard"
-          className="rounded-sm border border-ink/20 px-4 py-2 text-sm font-medium text-ink/70 transition hover:bg-ink/5"
-        >
-          ← Dashboard
-        </Link>
+        {!isReadOnly && (
+          <Link
+            to="/fees/dashboard"
+            className="rounded-sm border border-ink/20 px-4 py-2 text-sm font-medium text-ink/70 transition hover:bg-ink/5"
+          >
+            ← Dashboard
+          </Link>
+        )}
         {!isReadOnly && (
           <Link
             to="/fees/generate"
@@ -284,8 +286,8 @@ const FeeListPage = () => {
                   <th className="px-4 py-3">Student</th>
                   <th className="px-4 py-3">Class / Batch</th>
                   <th className="px-4 py-3">Month</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
-                  <th className="px-4 py-3 text-right">Paid</th>
+                  {!isReadOnly && <th className="px-4 py-3 text-right">Amount</th>}
+                  {!isReadOnly && <th className="px-4 py-3 text-right">Paid</th>}
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Receipt</th>
                   {!isReadOnly && <th className="px-4 py-3">Actions</th>}
@@ -303,21 +305,29 @@ const FeeListPage = () => {
                       {fee.batch ? ` · ${fee.batch}` : ''}
                     </td>
                     <td className="px-4 py-3 text-ink/70">{monthLabel(fee.fee_month)}</td>
-                    <td className="px-4 py-3 text-right font-medium text-ink">Rs {fmt(fee.amount)}</td>
-                    <td className="px-4 py-3 text-right text-ink/70">
-                      {parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}
-                    </td>
+                    {!isReadOnly && (
+                      <td className="px-4 py-3 text-right font-medium text-ink">Rs {fmt(fee.amount)}</td>
+                    )}
+                    {!isReadOnly && (
+                      <td className="px-4 py-3 text-right text-ink/70">
+                        {parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <StatusBadge status={fee.status} />
                     </td>
                     <td className="px-4 py-3 text-xs text-ink/50">
                       {fee.receipt_number ? (
-                        <button
-                          onClick={() => navigate(`/fees/receipt/${fee.receipt_number}`)}
-                          className="text-accent hover:underline"
-                        >
-                          {fee.receipt_number}
-                        </button>
+                        isReadOnly ? (
+                          fee.receipt_number
+                        ) : (
+                          <button
+                            onClick={() => navigate(`/fees/receipt/${fee.receipt_number}`)}
+                            className="text-accent hover:underline"
+                          >
+                            {fee.receipt_number}
+                          </button>
+                        )
                       ) : (
                         '—'
                       )}

@@ -19,6 +19,16 @@ const createStudent = async (req, res) => {
       status,
     } = req.body;
 
+    if (req.user.role === 'teacher') {
+      const assignedClasses = req.user.classes || [];
+      if (assignedClasses.length === 0) {
+        return res.status(403).json({ message: 'You have not been assigned to any class yet. Contact the administrator.' });
+      }
+      if (!assignedClasses.includes(className)) {
+        return res.status(403).json({ message: `You can only add students to your assigned class(es): ${assignedClasses.join(', ')}` });
+      }
+    }
+
     const duplicate = await StudentModel.existsByRollClassBatch(rollNumber, className, batch);
     if (duplicate) {
       return res.status(409).json({
@@ -57,9 +67,18 @@ const listStudents = async (req, res) => {
   try {
     const { search, class: className, batch, status, sortBy, sortDir, page, limit } = req.query;
 
+    let classIn;
+    if (req.user.role === 'teacher') {
+      const assignedClasses = req.user.classes || [];
+      // If the teacher requested a specific class filter, only honor it when
+      // it's one of their own classes; otherwise scope to all their classes.
+      classIn = className ? assignedClasses.filter((c) => c === className) : assignedClasses;
+    }
+
     const result = await StudentModel.list({
       search,
-      class: className,
+      class: classIn ? undefined : className,
+      classIn,
       batch,
       status,
       sortBy,
@@ -81,7 +100,17 @@ const listStudents = async (req, res) => {
  */
 const getFilterOptions = async (req, res) => {
   try {
-    const options = await StudentModel.getDistinctClassesAndBatches();
+    const isTeacher = req.user.role === 'teacher';
+    const assignedClasses = isTeacher ? (req.user.classes || []) : undefined;
+
+    const options = await StudentModel.getDistinctClassesAndBatches(assignedClasses);
+
+    // For teachers, always offer their full assigned-class list (even for
+    // classes that don't have students yet), not just classes with existing students.
+    if (isTeacher) {
+      options.classes = assignedClasses;
+    }
+
     return res.status(200).json({
       ...options,
       statuses: StudentModel.ALLOWED_STATUSES,
@@ -104,6 +133,10 @@ const getStudent = async (req, res) => {
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (req.user.role === 'teacher' && !(req.user.classes || []).includes(student.class)) {
+      return res.status(403).json({ message: 'You do not have access to this student' });
     }
 
     return res.status(200).json({ student });
@@ -138,6 +171,16 @@ const updateStudent = async (req, res) => {
       monthlyFee,
       status,
     } = req.body;
+
+    if (req.user.role === 'teacher') {
+      const assignedClasses = req.user.classes || [];
+      if (!assignedClasses.includes(existing.class)) {
+        return res.status(403).json({ message: 'You do not have access to this student' });
+      }
+      if (className !== undefined && !assignedClasses.includes(className)) {
+        return res.status(403).json({ message: `You can only assign students to your assigned class(es): ${assignedClasses.join(', ')}` });
+      }
+    }
 
     // If roll number / class / batch is changing, check for duplicates
     const newRoll = rollNumber !== undefined ? rollNumber : existing.roll_number;
@@ -183,6 +226,17 @@ const updateStudent = async (req, res) => {
 const deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (req.user.role === 'teacher') {
+      const existing = await StudentModel.findById(id);
+      if (!existing) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+      if (!(req.user.classes || []).includes(existing.class)) {
+        return res.status(403).json({ message: 'You do not have access to this student' });
+      }
+    }
+
     const deleted = await StudentModel.delete(id);
 
     if (!deleted) {

@@ -9,6 +9,13 @@ const {
   getTeacher,
   updateTeacher,
   deleteTeacher,
+  createTeacherAccount,
+  getTeacherAccount,
+  updateTeacherClasses,
+  activateTeacherAccount,
+  deactivateTeacherAccount,
+  resetTeacherPassword,
+  getMyClasses,
 } = require('../controllers/teacherController');
 
 const authenticate = require('../middleware/authenticate');
@@ -86,6 +93,13 @@ router.get(
 router.get('/filters', authorize('owner', 'admin'), getFilterOptions);
 
 /**
+ * GET /api/teachers/me/classes
+ * A logged-in teacher's own assigned classes.
+ * Registered before the /:id routes so "me" isn't swallowed as an id param.
+ */
+router.get('/me/classes', authorize('teacher'), getMyClasses);
+
+/**
  * GET /api/teachers/:id
  * Owner, Admin only.
  */
@@ -131,6 +145,95 @@ router.delete(
   idParamRule,
   handleValidation,
   deleteTeacher
+);
+
+// -------------------------------------------------------
+// LOGIN ACCOUNT MANAGEMENT (Phase 14 — Teacher Portal)
+// -------------------------------------------------------
+
+/**
+ * GET /api/teachers/:id/account
+ * View a teacher's login account status + assigned classes.
+ */
+router.get(
+  '/:id/account',
+  authorize('owner', 'admin'),
+  idParamRule,
+  handleValidation,
+  getTeacherAccount
+);
+
+/**
+ * POST /api/teachers/:id/account
+ * Create a login account for an existing teacher.
+ */
+router.post(
+  '/:id/account',
+  authorize('owner', 'admin'),
+  [
+    ...idParamRule,
+    body('email').isEmail().withMessage('A valid email is required'),
+    body('password')
+      .isLength({ min: 8 })
+      .withMessage('Temporary password must be at least 8 characters long'),
+    body('classes').optional().isArray().withMessage('classes must be an array'),
+  ],
+  handleValidation,
+  createTeacherAccount
+);
+
+/**
+ * PUT /api/teachers/:id/classes
+ * Replace the classes a teacher's login is scoped to.
+ */
+router.put(
+  '/:id/classes',
+  authorize('owner', 'admin'),
+  [
+    ...idParamRule,
+    body('classes').isArray().withMessage('classes must be an array'),
+  ],
+  handleValidation,
+  updateTeacherClasses
+);
+
+/**
+ * PATCH /api/teachers/:id/account/activate
+ */
+router.patch(
+  '/:id/account/activate',
+  authorize('owner', 'admin'),
+  idParamRule,
+  handleValidation,
+  activateTeacherAccount
+);
+
+/**
+ * PATCH /api/teachers/:id/account/deactivate
+ */
+router.patch(
+  '/:id/account/deactivate',
+  authorize('owner', 'admin'),
+  idParamRule,
+  handleValidation,
+  deactivateTeacherAccount
+);
+
+/**
+ * PATCH /api/teachers/:id/account/reset-password
+ * Admin issues a new temporary password for a teacher.
+ */
+router.patch(
+  '/:id/account/reset-password',
+  authorize('owner', 'admin'),
+  [
+    ...idParamRule,
+    body('newPassword')
+      .isLength({ min: 8 })
+      .withMessage('New password must be at least 8 characters long'),
+  ],
+  handleValidation,
+  resetTeacherPassword
 );
 
 module.exports = router;

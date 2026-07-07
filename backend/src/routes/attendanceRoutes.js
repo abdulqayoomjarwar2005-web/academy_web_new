@@ -17,10 +17,12 @@ const {
 
 const authenticate  = require('../middleware/authenticate');
 const authorize     = require('../middleware/authorize');
+const attachTeacherClasses = require('../middleware/teacherScope');
 const handleValidation = require('../middleware/validate');
 
 // All attendance routes require authentication
 router.use(authenticate);
+router.use(attachTeacherClasses);
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const validateDate = (field) =>

@@ -102,7 +102,19 @@ const StudentModel = {
   /**
    * List students with optional search, filters, sorting, and pagination.
    */
-  async list({ search, class: className, batch, status, sortBy = 'created_at', sortDir = 'desc', page = 1, limit = 20 }) {
+  async list({ search, class: className, classIn, batch, status, sortBy = 'created_at', sortDir = 'desc', page = 1, limit = 20 }) {
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+
+    // Teacher accounts pass classIn = their assigned classes. An empty array
+    // means the teacher has no classes assigned yet, so they see no students.
+    if (Array.isArray(classIn) && classIn.length === 0) {
+      return {
+        data: [],
+        pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 1 },
+      };
+    }
+
     const conditions = [];
     const params = [];
     let idx = 1;
@@ -115,7 +127,11 @@ const StudentModel = {
       idx++;
     }
 
-    if (className) {
+    if (Array.isArray(classIn) && classIn.length > 0) {
+      conditions.push(`class = ANY($${idx})`);
+      params.push(classIn);
+      idx++;
+    } else if (className) {
       conditions.push(`class = $${idx}`);
       params.push(className);
       idx++;
@@ -138,8 +154,6 @@ const StudentModel = {
     const sortColumn = ALLOWED_SORT_COLUMNS[sortBy] || 'created_at';
     const sortDirection = sortDir.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
-    const safePage = Math.max(parseInt(page, 10) || 1, 1);
     const offset = (safePage - 1) * safeLimit;
 
     const countResult = await pool.query(
@@ -221,10 +235,12 @@ const StudentModel = {
   /**
    * Get distinct class and batch values for filter dropdowns.
    */
-  async getDistinctClassesAndBatches() {
-    const classesResult = await pool.query(
-      `SELECT DISTINCT class FROM students ORDER BY class ASC`
-    );
+  async getDistinctClassesAndBatches(classIn) {
+    const classesResult =
+      Array.isArray(classIn) && classIn.length > 0
+        ? await pool.query(`SELECT DISTINCT class FROM students WHERE class = ANY($1) ORDER BY class ASC`, [classIn])
+        : await pool.query(`SELECT DISTINCT class FROM students ORDER BY class ASC`);
+
     const batchesResult = await pool.query(
       `SELECT DISTINCT batch FROM students ORDER BY batch ASC`
     );

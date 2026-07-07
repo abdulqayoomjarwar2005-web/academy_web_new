@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmDialog from '../components/ConfirmDialog';
+import TeacherAccountPanel from '../components/TeacherAccountPanel';
 import { getTeacher, deleteTeacher } from '../utils/teacherApi';
 
 const formatDate = (dateStr) => {
@@ -117,6 +118,8 @@ const TeacherProfilePage = () => {
             Back to list
           </Link>
         </div>
+
+        <TeacherAccountPanel teacherId={teacher.id} />
       </div>
 
       {showDelete && (

@@ -15,7 +15,16 @@ const AttendanceModel = {
    * Get all students for a given date, joined with existing attendance if any.
    * Used by teachers to load the "mark attendance" form.
    */
-  async getStudentsForDate(date) {
+  async getStudentsForDate(date, classIn) {
+    const params = [date];
+    let classFilter = '';
+
+    if (Array.isArray(classIn)) {
+      if (classIn.length === 0) return [];
+      params.push(classIn);
+      classFilter = `AND s.class = ANY($2)`;
+    }
+
     const result = await pool.query(
       `SELECT
          s.id            AS student_id,
@@ -30,9 +39,9 @@ const AttendanceModel = {
        FROM students s
        LEFT JOIN attendance a
          ON a.student_id = s.id AND a.attendance_date = $1
-       WHERE s.status = 'active'
+       WHERE s.status = 'active' ${classFilter}
        ORDER BY s.class, s.student_name`,
-      [date]
+      params
     );
     return result.rows;
   },
@@ -172,10 +181,20 @@ const AttendanceModel = {
    * Get attendance history with filters.
    * Supports: date, studentId, status, class, section, page, limit.
    */
-  async getHistory({ date, studentId, status, className, section, page = 1, limit = 20 }) {
+  async getHistory({ date, studentId, status, className, classIn, section, page = 1, limit = 20 }) {
     const conditions = [];
     const params = [];
     let idx = 1;
+
+    // Teacher accounts pass classIn = their assigned classes.
+    if (Array.isArray(classIn)) {
+      if (classIn.length === 0) {
+        return { data: [], pagination: { total: 0, page: 1, limit: 20, totalPages: 1 } };
+      }
+      conditions.push(`s.class = ANY($${idx})`);
+      params.push(classIn);
+      idx++;
+    }
 
     if (date) {
       conditions.push(`a.attendance_date = $${idx}`);
@@ -462,6 +481,38 @@ const AttendanceModel = {
       `SELECT COUNT(*) AS total FROM attendance_edit_requests WHERE status = 'pending'`
     );
     return parseInt(result.rows[0].total, 10);
+  },
+
+  // -------------------------------------------------------
+  // CLASS-SCOPE VALIDATION HELPERS (Phase 14 — Teacher Portal)
+  // -------------------------------------------------------
+
+  /**
+   * Given a list of student UUIDs, return the distinct classes they belong to.
+   * Used to verify a teacher is only submitting attendance for their own class(es).
+   */
+  async getClassesForStudentIds(studentIds) {
+    if (!studentIds || studentIds.length === 0) return [];
+    const result = await pool.query(
+      `SELECT DISTINCT class FROM students WHERE id = ANY($1)`,
+      [studentIds]
+    );
+    return result.rows.map((r) => r.class);
+  },
+
+  /**
+   * Get the class of the student tied to a given attendance record.
+   * Used to verify a teacher is only editing attendance for their own class(es).
+   */
+  async getClassForAttendanceId(attendanceId) {
+    const result = await pool.query(
+      `SELECT s.class
+       FROM attendance a
+       JOIN students s ON s.id = a.student_id
+       WHERE a.id = $1`,
+      [attendanceId]
+    );
+    return result.rows[0]?.class || null;
   },
 };
 

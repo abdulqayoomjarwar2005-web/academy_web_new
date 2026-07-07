@@ -454,6 +454,45 @@ FULL OUTER JOIN yearly_expenses e ON c.year = e.year;
 -- =========================================================
 
 -- =========================================================
+-- PHASE 14: Teacher Portal — Login Accounts & Class Assignments
+-- =========================================================
+
+-- Link a teacher HR record to a login account in `users` (nullable —
+-- a teacher can exist without a login until the admin creates one).
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_teachers_user_id ON teachers(user_id);
+
+-- Which class(es) a teacher-login is scoped to. A teacher can only see/add/edit
+-- students, mark attendance, and view (status-only) fees for these classes.
+CREATE TABLE IF NOT EXISTS teacher_class_assignments (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    class        VARCHAR(50) NOT NULL,
+    assigned_by  UUID REFERENCES users(id),
+    created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT uq_teacher_class UNIQUE (user_id, class)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tca_user  ON teacher_class_assignments(user_id);
+CREATE INDEX IF NOT EXISTS idx_tca_class ON teacher_class_assignments(class);
+
+-- =========================================================
+-- PHASE 15: OTP-based Password Reset
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS password_reset_otps (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    otp_hash    VARCHAR(255) NOT NULL,
+    expires_at  TIMESTAMP WITH TIME ZONE NOT NULL,
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    used        BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_otps_user ON password_reset_otps(user_id);
+
+-- =========================================================
 -- Seed: Default Owner Account
 -- Run: node src/config/seed.js to create the first owner.
 -- =========================================================

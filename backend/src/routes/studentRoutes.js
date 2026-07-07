@@ -13,11 +13,13 @@ const {
 
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const attachTeacherClasses = require('../middleware/teacherScope');
 const handleValidation = require('../middleware/validate');
 const StudentModel = require('../models/studentModel');
 
 // All student routes require authentication
 router.use(authenticate);
+router.use(attachTeacherClasses);
 
 const studentValidationRules = [
   body('rollNumber').trim().notEmpty().withMessage('Roll number is required'),

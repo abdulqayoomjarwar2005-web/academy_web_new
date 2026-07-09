@@ -98,7 +98,7 @@ const TeacherProfilePage = () => {
           />
         </dl>
 
-        <div className="mt-10 flex gap-3 border-t border-ink/10 pt-6">
+        <div className="mt-10 flex flex-wrap gap-3 border-t border-ink/10 pt-6">
           <Link
             to={`/teachers/${teacher.id}/edit`}
             className="rounded-sm bg-ink px-5 py-2.5 text-sm font-medium text-canvas transition hover:bg-ink/90"
@@ -113,7 +113,7 @@ const TeacherProfilePage = () => {
           </button>
           <Link
             to="/teachers"
-            className="ml-auto rounded-sm border border-ink/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-ink/5"
+            className="rounded-sm border border-ink/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-ink/5 sm:ml-auto"
           >
             Back to list
           </Link>
@@ -143,3 +143,4 @@ const Detail = ({ label, value }) => (
 );
 
 export default TeacherProfilePage;
+

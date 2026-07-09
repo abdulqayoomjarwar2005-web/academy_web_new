@@ -163,7 +163,7 @@ const MonthlyReportPage = () => {
 
           {/* Per-student table */}
           <div className="rounded-sm border border-ink/10 bg-white">
-            <div className="flex items-center justify-between border-b border-ink/10 px-4 py-3">
+            <div className="flex flex-col gap-1 border-b border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-sm font-semibold text-ink">
                 Student Statistics
                 {month && (
@@ -180,7 +180,44 @@ const MonthlyReportPage = () => {
                 No records found for the selected filters.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Mobile card list */}
+              <div className="flex flex-col gap-3 p-4 md:hidden">
+                {students.map((s) => (
+                  <div key={s.student_id} className="rounded-sm border border-ink/10 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink">{s.full_name}</p>
+                        <p className="font-mono text-[11px] text-ink/50">{s.student_code}</p>
+                        <p className="mt-0.5 text-xs text-ink/60">{s.class_name}{s.section ? ` · ${s.section}` : ''}</p>
+                      </div>
+                      <span className={`shrink-0 font-semibold text-sm ${pctColor(s.attendance_percentage)}`}>
+                        {pct(s.attendance_percentage)}%
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-4 gap-2 text-center text-xs">
+                      <div>
+                        <p className="text-ink/40">Days</p>
+                        <p className="font-medium text-ink">{s.total_days}</p>
+                      </div>
+                      <div>
+                        <p className="text-ink/40">Present</p>
+                        <p className="font-medium text-green-600">{s.total_present}</p>
+                      </div>
+                      <div>
+                        <p className="text-ink/40">Absent</p>
+                        <p className="font-medium text-red-600">{s.total_absent}</p>
+                      </div>
+                      <div>
+                        <p className="text-ink/40">Leave</p>
+                        <p className="font-medium text-yellow-600">{s.total_leave}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -225,11 +262,12 @@ const MonthlyReportPage = () => {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-ink/10 px-4 py-3 text-sm">
+              <div className="flex flex-col gap-2 border-t border-ink/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-xs text-ink/50">
                   Page {pagination.page} of {pagination.totalPages}
                 </span>

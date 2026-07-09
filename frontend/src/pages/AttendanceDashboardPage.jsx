@@ -156,7 +156,25 @@ const AttendanceDashboardPage = () => {
                   View all →
                 </Link>
               </div>
-              <div className="overflow-x-auto rounded-sm border border-ink/10">
+              {/* Mobile card list */}
+              <div className="flex flex-col gap-2 md:hidden">
+                {recentRecords.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between rounded-sm border border-ink/10 bg-white px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{r.full_name}</p>
+                      <p className="text-xs text-ink/50">{r.class_name} &middot; {r.marked_by}</p>
+                    </div>
+                    <span className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-xs font-medium capitalize
+                      ${r.status === 'present' ? 'bg-green-100 text-green-800' :
+                        r.status === 'absent'  ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -194,3 +212,5 @@ const AttendanceDashboardPage = () => {
 };
 
 export default AttendanceDashboardPage;
+
+

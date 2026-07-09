@@ -120,7 +120,52 @@ const StudentDuePage = () => {
               No due months — all fees are cleared.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-sm border border-ink/10">
+            <>
+              {/* Mobile card list */}
+              <div className="flex flex-col gap-3 md:hidden">
+                {dueMonths.map((fee) => {
+                  const balance = parseFloat(fee.amount) - parseFloat(fee.amount_paid);
+                  return (
+                    <div key={fee.id} className="rounded-sm border border-ink/10 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-medium text-ink">{monthLabel(fee.fee_month)}</p>
+                        <StatusBadge status={fee.status} />
+                      </div>
+                      {!isReadOnly && (
+                        <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-2 text-xs">
+                          <div>
+                            <p className="text-ink/40">Amount</p>
+                            <p className="text-ink/80">Rs {fmt(fee.amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-ink/40">Paid</p>
+                            <p className="text-ink/80">{parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-ink/40">Balance</p>
+                            <p className="font-medium text-red-600">Rs {fmt(balance)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {!isReadOnly && (
+                        <button
+                          onClick={() => handleMarkPaid(fee)}
+                          className="mt-3 w-full rounded-sm bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                        >
+                          Mark Paid
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!isReadOnly && (
+                  <div className="rounded-sm border border-ink/10 bg-ink/3 px-4 py-3 text-sm font-semibold text-ink">
+                    Total Due: <span className="text-red-600">Rs {fmt(totalDue)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -176,7 +221,8 @@ const StudentDuePage = () => {
                   )}
                 </tfoot>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </>
       )}

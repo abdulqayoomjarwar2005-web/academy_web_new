@@ -31,33 +31,49 @@ const StudentTable = ({ rows, status }) => {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/50">
-            <th className="py-2 pr-4">Student ID</th>
-            <th className="py-2 pr-4">Full Name</th>
-            <th className="py-2 pr-4">Class</th>
-            <th className="py-2 pr-4">Section</th>
-            <th className="py-2">Marked By</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr
-              key={r.attendance_id}
-              className="border-b border-ink/5 hover:bg-ink/[.02] transition-colors"
-            >
-              <td className="py-2 pr-4 font-mono text-ink/70">{r.student_code}</td>
-              <td className="py-2 pr-4 font-medium">{r.full_name}</td>
-              <td className="py-2 pr-4">{r.class_name}</td>
-              <td className="py-2 pr-4">{r.section}</td>
-              <td className="py-2 text-ink/60">{r.marked_by}</td>
+    <>
+      {/* Mobile card list */}
+      <div className="flex flex-col gap-2 md:hidden">
+        {rows.map((r) => (
+          <div key={r.attendance_id} className="rounded-sm border border-ink/10 px-3 py-2.5">
+            <p className="font-medium text-ink">{r.full_name}</p>
+            <p className="mt-0.5 font-mono text-xs text-ink/50">{r.student_code}</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/60">
+              <span>{r.class_name}{r.section ? ` · ${r.section}` : ''}</span>
+              <span>Marked by {r.marked_by}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/50">
+              <th className="py-2 pr-4">Student ID</th>
+              <th className="py-2 pr-4">Full Name</th>
+              <th className="py-2 pr-4">Class</th>
+              <th className="py-2 pr-4">Section</th>
+              <th className="py-2">Marked By</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr
+                key={r.attendance_id}
+                className="border-b border-ink/5 hover:bg-ink/[.02] transition-colors"
+              >
+                <td className="py-2 pr-4 font-mono text-ink/70">{r.student_code}</td>
+                <td className="py-2 pr-4 font-medium">{r.full_name}</td>
+                <td className="py-2 pr-4">{r.class_name}</td>
+                <td className="py-2 pr-4">{r.section}</td>
+                <td className="py-2 text-ink/60">{r.marked_by}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 };
 
@@ -208,7 +224,7 @@ const DailyReportPage = () => {
                 <button
                   key={t.key}
                   onClick={() => setActiveTab(t.key)}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                     activeTab === t.key
                       ? `border-b-2 border-accent ${t.color}`
                       : 'text-ink/50 hover:text-ink/80'

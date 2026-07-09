@@ -195,10 +195,10 @@ export default function AuditLogPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <DashboardLayout title="Audit Log">
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-6xl px-0 py-2 sm:px-4 sm:py-6">
 
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl text-ink">Audit Log</h1>
             <p className="mt-1 text-sm text-ink/50">
@@ -303,7 +303,34 @@ export default function AuditLogPage() {
               <p className="mt-2 text-sm text-ink/50">No audit entries found.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              {/* Mobile card list */}
+              <div className="flex flex-col divide-y divide-ink/5 md:hidden">
+                {logs.map(log => (
+                  <div key={log.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <ActionIcon action={log.action} />
+                        <span className="font-mono text-xs text-ink/70">{log.action}</span>
+                      </div>
+                      <BadgeCategory category={log.category} />
+                    </div>
+                    <p className="mt-2 text-sm text-ink">{log.description}</p>
+                    {log.entity_label && (
+                      <p className="text-xs text-ink/40">{log.entity_type}: {log.entity_label}</p>
+                    )}
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium text-ink">{log.user_name}</span>
+                        <RoleBadge role={log.user_role} />
+                      </div>
+                      <span className="text-xs text-ink/40">{formatDateTime(log.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead className="border-b border-ink/10 bg-gray-50/60">
                   <tr>
@@ -349,13 +376,14 @@ export default function AuditLogPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-ink/40">
               Page {page} of {totalPages}
             </p>

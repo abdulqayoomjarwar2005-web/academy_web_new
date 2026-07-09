@@ -73,7 +73,7 @@ const AttendanceEditRequestsPage = () => {
   return (
     <DashboardLayout title="Attendance Edit Requests">
       {/* Filter tabs */}
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         {['pending', 'approved', 'rejected', ''].map((s) => (
           <button
             key={s || 'all'}
@@ -164,7 +164,7 @@ const AttendanceEditRequestsPage = () => {
           </div>
 
           {/* Pagination */}
-          <div className="mt-6 flex items-center justify-between text-sm text-ink/60">
+          <div className="mt-6 flex flex-col gap-3 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between">
             <span>{pagination.total} requests total</span>
             <div className="flex gap-2">
               <button

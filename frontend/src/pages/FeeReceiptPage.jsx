@@ -59,7 +59,7 @@ const FeeReceiptPage = () => {
           <div id="receipt-card" style={{ background: 'white', borderRadius: 10, boxShadow: '0 4px 24px rgba(11,31,58,0.12)', overflow: 'hidden' }}>
 
             {/* Header band */}
-            <div style={{ background: 'linear-gradient(135deg, #0B1F3A 0%, #1A3557 100%)', padding: '2rem 2.25rem 1.75rem', textAlign: 'center', position: 'relative' }}>
+            <div className="px-6 pb-7 pt-8 sm:px-9" style={{ background: 'linear-gradient(135deg, #0B1F3A 0%, #1A3557 100%)', textAlign: 'center', position: 'relative' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #C9A84C, #E2C97E, #C9A84C)' }} />
 
               {/* Crest */}
@@ -80,7 +80,7 @@ const FeeReceiptPage = () => {
             </div>
 
             {/* Receipt meta */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2.25rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+            <div className="px-6 py-4 sm:px-9" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
               <div>
                 <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A9BB0' }}>Receipt No.</div>
                 <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#0B1F3A', fontSize: '1rem', marginTop: 2 }}>{fee.receipt_number}</div>
@@ -92,7 +92,7 @@ const FeeReceiptPage = () => {
             </div>
 
             {/* Body */}
-            <div style={{ padding: '1.5rem 2.25rem' }}>
+            <div className="px-6 py-6 sm:px-9">
 
               {/* Student details */}
               <div style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '0.6rem' }}>Student Information</div>
@@ -129,7 +129,7 @@ const FeeReceiptPage = () => {
             </div>
 
             {/* Footer */}
-            <div style={{ borderTop: '1px solid #E2E8F0', padding: '1rem 2.25rem', textAlign: 'center', background: '#F8FAFC' }}>
+            <div className="px-6 py-4 sm:px-9" style={{ borderTop: '1px solid #E2E8F0', textAlign: 'center', background: '#F8FAFC' }}>
               {fee.updated_by_name && (
                 <p style={{ fontSize: '0.72rem', color: '#8A9BB0', marginBottom: '0.3rem' }}>
                   Processed by: <span style={{ fontWeight: 600, color: '#0B1F3A' }}>{fee.updated_by_name}</span>

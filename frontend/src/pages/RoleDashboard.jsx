@@ -191,7 +191,7 @@ const RoleDashboard = () => {
     <DashboardLayout title={dashboard?.title || 'Dashboard'}>
 
       {/* Welcome banner */}
-      <div style={{ background: 'linear-gradient(135deg, #0B1F3A 0%, #1A3557 100%)', borderRadius: 10, padding: '1.75rem 2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
+      <div className="px-5 py-6 sm:px-8 sm:py-7" style={{ background: 'linear-gradient(135deg, #0B1F3A 0%, #1A3557 100%)', borderRadius: 10, marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: '50%', border: '30px solid rgba(201,168,76,0.08)' }} />
         <div style={{ position: 'absolute', right: 80, bottom: -40, width: 100, height: 100, borderRadius: '50%', border: '20px solid rgba(201,168,76,0.05)' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>

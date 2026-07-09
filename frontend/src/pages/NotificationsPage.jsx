@@ -132,7 +132,7 @@ const NotificationsPage = () => {
 
   return (
     <DashboardLayout title="Notifications">
-      <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mx-auto max-w-3xl px-3 py-5 sm:px-6 sm:py-8">
 
         {/* ── Page header ──────────────────────────────────────── */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -196,7 +196,7 @@ const NotificationsPage = () => {
             {items.map((n) => (
               <li
                 key={n.id}
-                className={`group flex items-start gap-4 px-5 py-4 transition-colors ${
+                className={`group flex flex-wrap items-start gap-3 px-3 py-3 transition-colors sm:flex-nowrap sm:gap-4 sm:px-5 sm:py-4 ${
                   n.is_read ? '' : 'bg-blue-50/30'
                 } hover:bg-gray-50`}
               >
@@ -223,7 +223,7 @@ const NotificationsPage = () => {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex shrink-0 flex-col items-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex shrink-0 flex-col items-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                   {!n.is_read && (
                     <button
                       onClick={() => handleMarkRead(n.id)}

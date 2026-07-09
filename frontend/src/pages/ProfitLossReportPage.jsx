@@ -170,7 +170,34 @@ const ProfitLossReportPage = () => {
       {loading ? (
         <div className="py-10 text-center text-ink/40">Loading…</div>
       ) : monthlyReport ? (
-        <div className="mb-8 overflow-x-auto rounded-sm border border-ink/10 bg-white">
+        <>
+        {/* Mobile card list */}
+        <div className="mb-8 flex flex-col gap-2 md:hidden">
+          {monthlyReport.months.map((m) => (
+            <div key={m.month} className="rounded-sm border border-ink/10 bg-white p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-ink">{monthLabel(m.month)}</span>
+                <span className={`font-medium ${profitClass(m.profit)}`}>Rs {fmt(m.profit)}</span>
+              </div>
+              <div className="mt-1.5 flex justify-between text-xs text-ink/60">
+                <span>Collection: Rs {fmt(m.totalCollection)}</span>
+                <span>Expenses: Rs {fmt(m.totalExpenses)}</span>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-sm border border-ink/10 bg-ink/[0.03] p-3 font-medium">
+            <div className="flex items-center justify-between">
+              <span className="text-ink">Total &middot; {monthlyReport.year}</span>
+              <span className={profitClass(monthlyReport.totals.profit)}>Rs {fmt(monthlyReport.totals.profit)}</span>
+            </div>
+            <div className="mt-1.5 flex justify-between text-xs text-ink/60">
+              <span>Collection: Rs {fmt(monthlyReport.totals.totalCollection)}</span>
+              <span>Expenses: Rs {fmt(monthlyReport.totals.totalExpenses)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-8 hidden overflow-x-auto rounded-sm border border-ink/10 bg-white md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -204,12 +231,40 @@ const ProfitLossReportPage = () => {
             </tfoot>
           </table>
         </div>
+        </>
       ) : null}
 
       {/* Yearly Profit/Loss */}
       <h2 className="mb-4 font-display text-lg text-ink">Yearly Profit / Loss</h2>
       {yearlyReport && yearlyReport.years.length > 0 ? (
-        <div className="overflow-x-auto rounded-sm border border-ink/10 bg-white">
+        <>
+        {/* Mobile card list */}
+        <div className="flex flex-col gap-2 md:hidden">
+          {yearlyReport.years.map((y) => (
+            <div key={y.year} className="rounded-sm border border-ink/10 bg-white p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-ink">{y.year}</span>
+                <span className={`font-medium ${profitClass(y.profit)}`}>Rs {fmt(y.profit)}</span>
+              </div>
+              <div className="mt-1.5 flex justify-between text-xs text-ink/60">
+                <span>Collection: Rs {fmt(y.totalCollection)}</span>
+                <span>Expenses: Rs {fmt(y.totalExpenses)}</span>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-sm border border-ink/10 bg-ink/[0.03] p-3 font-medium">
+            <div className="flex items-center justify-between">
+              <span className="text-ink">Grand Total</span>
+              <span className={profitClass(yearlyReport.totals.profit)}>Rs {fmt(yearlyReport.totals.profit)}</span>
+            </div>
+            <div className="mt-1.5 flex justify-between text-xs text-ink/60">
+              <span>Collection: Rs {fmt(yearlyReport.totals.totalCollection)}</span>
+              <span>Expenses: Rs {fmt(yearlyReport.totals.totalExpenses)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-sm border border-ink/10 bg-white md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -243,6 +298,7 @@ const ProfitLossReportPage = () => {
             </tfoot>
           </table>
         </div>
+        </>
       ) : (
         <p className="text-sm text-ink/50">No yearly data available yet.</p>
       )}

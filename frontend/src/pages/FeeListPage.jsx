@@ -262,7 +262,7 @@ const FeeListPage = () => {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search name, ID, receipt…"
-          className="w-64 rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none"
+          className="w-full rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none sm:w-64"
         />
       </div>
 
@@ -279,7 +279,86 @@ const FeeListPage = () => {
         <div className="py-16 text-center text-ink/40">No fee records found.</div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-sm border border-ink/10">
+          {/* Mobile card list */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {fees.map((fee) => (
+              <div key={fee.id} className="rounded-sm border border-ink/10 bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{fee.student_name}</p>
+                    <p className="text-xs text-ink/40">{fee.student_code}</p>
+                    <p className="mt-0.5 text-xs text-ink/60">
+                      {fee.class}
+                      {fee.batch ? ` · ${fee.batch}` : ''}
+                    </p>
+                  </div>
+                  <StatusBadge status={fee.status} />
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <p className="text-ink/40">Month</p>
+                    <p className="text-ink/80">{monthLabel(fee.fee_month)}</p>
+                  </div>
+                  <div>
+                    <p className="text-ink/40">Receipt</p>
+                    <p className="text-ink/80">
+                      {fee.receipt_number ? (
+                        isReadOnly ? (
+                          fee.receipt_number
+                        ) : (
+                          <button onClick={() => navigate(`/fees/receipt/${fee.receipt_number}`)} className="text-accent hover:underline">
+                            {fee.receipt_number}
+                          </button>
+                        )
+                      ) : (
+                        '—'
+                      )}
+                    </p>
+                  </div>
+                  {!isReadOnly && (
+                    <div>
+                      <p className="text-ink/40">Amount</p>
+                      <p className="font-medium text-ink">Rs {fmt(fee.amount)}</p>
+                    </div>
+                  )}
+                  {!isReadOnly && (
+                    <div>
+                      <p className="text-ink/40">Paid</p>
+                      <p className="text-ink/80">{parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}</p>
+                    </div>
+                  )}
+                </div>
+
+                {!isReadOnly && (
+                  <div className="mt-3 flex flex-wrap gap-1.5 border-t border-ink/5 pt-3">
+                    {fee.status !== 'paid' && fee.status !== 'waived' && (
+                      <button onClick={() => handleMarkPaid(fee)} className="rounded-sm bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">
+                        Mark Paid
+                      </button>
+                    )}
+                    {fee.status !== 'unpaid' && fee.status !== 'waived' && (
+                      <button onClick={() => handleMarkUnpaid(fee)} className="rounded-sm border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50">
+                        Mark Unpaid
+                      </button>
+                    )}
+                    {fee.status !== 'paid' && fee.status !== 'waived' && (
+                      <button onClick={() => setPartialFee(fee)} className="rounded-sm border border-yellow-300 px-2 py-1 text-xs font-medium text-yellow-800 hover:bg-yellow-50">
+                        Partial
+                      </button>
+                    )}
+                    {fee.status !== 'waived' && (
+                      <button onClick={() => setWaiveFee(fee)} className="rounded-sm border border-ink/20 px-2 py-1 text-xs font-medium text-ink/50 hover:bg-ink/5">
+                        Waive
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -378,7 +457,7 @@ const FeeListPage = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
+            <div className="mt-4 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span className="text-ink/50">
                 {pagination.total} records · Page {pagination.page} of {pagination.totalPages}
               </span>

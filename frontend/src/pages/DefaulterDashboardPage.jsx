@@ -299,7 +299,7 @@ const DefaulterDashboardPage = () => {
       {/* ── Table ── */}
       <div className="rounded-sm border border-ink/10 bg-white">
         {/* Table header row */}
-        <div className="border-b border-ink/10 px-5 py-3 flex items-center justify-between">
+        <div className="border-b border-ink/10 px-4 py-3 sm:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm font-medium text-ink">
             {pagination ? (
               <>
@@ -330,8 +330,15 @@ const DefaulterDashboardPage = () => {
           </div>
         ) : (
           <>
+            {/* Mobile card list */}
+            <div className="flex flex-col gap-3 p-4 md:hidden">
+              {defaulters.map((d) => (
+                <DefaulterCard key={d.student_id} row={d} />
+              ))}
+            </div>
+
             {/* Desktop table */}
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/40">
@@ -365,7 +372,7 @@ const DefaulterDashboardPage = () => {
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-ink/10 px-5 py-3">
+              <div className="flex flex-col gap-2 border-t border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <span className="text-xs text-ink/40">
                   Page {pagination.page} of {pagination.totalPages}
                 </span>
@@ -494,6 +501,81 @@ const DefaulterRow = ({ row }) => {
         </tr>
       )}
     </>
+  );
+};
+
+// -------------------------------------------------------
+// Defaulter Card (mobile)
+// -------------------------------------------------------
+const DefaulterCard = ({ row }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const oldest = row.oldest_due_month
+    ? new Date(row.oldest_due_month).toLocaleString('en-PK', { month: 'short', year: 'numeric' })
+    : '—';
+  const latest = row.latest_due_month
+    ? new Date(row.latest_due_month).toLocaleString('en-PK', { month: 'short', year: 'numeric' })
+    : '—';
+
+  return (
+    <div className="rounded-sm border border-ink/10 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium text-ink">{row.student_name}</p>
+          <p className="text-xs text-ink/50">{row.student_code} &middot; {row.father_name}</p>
+          {row.contact_number && <p className="text-xs text-ink/40">{row.contact_number}</p>}
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1 font-display text-xl text-red-600">
+          {row.due_months_count}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1">
+        <StatusPill count={parseInt(row.unpaid_count)} label="unpaid" color="bg-red-100 text-red-700" />
+        <StatusPill count={parseInt(row.partial_count)} label="partial" color="bg-yellow-100 text-yellow-700" />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+        <div>
+          <p className="text-ink/40">Class / Batch</p>
+          <p className="text-ink/80">{row.class || '—'} {row.batch ? `· ${row.batch}` : ''}</p>
+        </div>
+        <div>
+          <p className="text-ink/40">Due Period</p>
+          <p className="text-ink/80">{oldest}{oldest !== latest ? ` – ${latest}` : ''}</p>
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <button onClick={() => setExpanded((e) => !e)} className="text-xs text-accent hover:underline">
+          {expanded ? 'Hide months ▲' : 'Show months ▼'}
+        </button>
+        {expanded && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {(row.due_month_labels || []).map((m) => (
+              <span key={m} className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs text-red-700">
+                {m}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between border-t border-ink/5 pt-3">
+        <div>
+          <p className="font-display text-base text-red-700">Rs {PKR(row.outstanding_balance)}</p>
+          {parseFloat(row.total_paid_partial) > 0 && (
+            <p className="text-xs text-ink/40">Partial paid: Rs {PKR(row.total_paid_partial)}</p>
+          )}
+        </div>
+        <Link
+          to={`/fees/due/${row.student_id}`}
+          className="rounded-sm border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-ink hover:text-canvas"
+        >
+          Collect Fee
+        </Link>
+      </div>
+    </div>
   );
 };
 

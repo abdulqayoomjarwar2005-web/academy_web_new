@@ -184,8 +184,72 @@ const StudentListPage = () => {
         </div>
       )}
 
+      {/* Mobile card list */}
+      <div className="mt-6 flex flex-col gap-3 md:hidden">
+        {loading ? (
+          <div className="rounded-sm border border-ink/10 bg-white px-4 py-8 text-center text-sm text-ink/50">
+            Loading students…
+          </div>
+        ) : students.length === 0 ? (
+          <div className="rounded-sm border border-ink/10 bg-white px-4 py-8 text-center text-sm text-ink/50">
+            No students found.
+          </div>
+        ) : (
+          students.map((student) => (
+            <div key={student.id} className="rounded-sm border border-ink/10 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <button
+                    onClick={() => navigate(`/students/${student.id}`)}
+                    className="text-left font-medium text-ink hover:text-accent"
+                  >
+                    {student.student_name}
+                  </button>
+                  <p className="text-xs text-ink/40">{student.father_name}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-ink/50">{student.student_id}</p>
+                </div>
+                <StatusBadge status={student.status} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <div>
+                  <p className="text-ink/40">Roll No.</p>
+                  <p className="text-ink/80">{student.roll_number}</p>
+                </div>
+                <div>
+                  <p className="text-ink/40">Class</p>
+                  <p className="text-ink/80">{student.class}</p>
+                </div>
+                <div>
+                  <p className="text-ink/40">Batch</p>
+                  <p className="text-ink/80">{student.batch}</p>
+                </div>
+                <div>
+                  <p className="text-ink/40">Monthly Fee</p>
+                  <p className="text-ink/80">
+                    {Number(student.monthly_fee).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-end gap-4 border-t border-ink/5 pt-3">
+                <Link to={`/students/${student.id}`} className="text-xs font-medium text-ink/60 hover:text-ink">
+                  View
+                </Link>
+                <Link to={`/students/${student.id}/edit`} className="text-xs font-medium text-accent hover:text-accent/80">
+                  Edit
+                </Link>
+                <button onClick={() => setDeleteTarget(student)} className="text-xs font-medium text-red-600 hover:text-red-700">
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Table */}
-      <div className="mt-6 overflow-x-auto rounded-sm border border-ink/10 bg-white">
+      <div className="mt-6 hidden overflow-x-auto rounded-sm border border-ink/10 bg-white md:block">
         <table className="min-w-full divide-y divide-ink/10 text-sm">
           <thead className="bg-ink/[0.03]">
             <tr>
@@ -267,7 +331,7 @@ const StudentListPage = () => {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-ink/60">
+        <div className="mt-4 flex flex-col gap-3 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between">
           <p>
             Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} students
           </p>

@@ -31,3 +31,4 @@ export const getFilterOptions = async () => {
   const { data } = await api.get('/students/filters');
   return data;
 };
+

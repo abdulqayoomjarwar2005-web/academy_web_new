@@ -158,7 +158,7 @@ const NotificationBell = () => {
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-80 rounded-md border border-ink/10 bg-white shadow-lg">
+        <div className="fixed left-3 right-3 top-16 z-50 rounded-md border border-ink/10 bg-white shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-10 sm:w-80">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-ink/8 px-4 py-3">
             <span className="text-sm font-semibold text-ink">Notifications</span>
@@ -197,7 +197,7 @@ const NotificationBell = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex shrink-0 flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex shrink-0 flex-col gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                     {!n.is_read && (
                       <button
                         onClick={() => handleMarkRead(n.id)}

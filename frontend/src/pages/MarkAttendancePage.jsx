@@ -174,7 +174,62 @@ const MarkAttendancePage = () => {
       ) : students.length === 0 ? (
         <div className="py-16 text-center text-ink/40">No active students found.</div>
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-ink/10">
+        <>
+          {/* Mobile card list */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {students.map((s) => {
+              const status = attendanceMap[s.student_id] || 'present';
+              return (
+                <div key={s.student_id} className="rounded-sm border border-ink/10 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{s.full_name}</p>
+                      <p className="font-mono text-[11px] text-ink/50">{s.student_code}</p>
+                      <p className="mt-0.5 text-xs text-ink/60">{s.class_name}{s.section ? ` · ${s.section}` : ''}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    {isLocked ? (
+                      <span className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[s.attendance_status] || 'bg-gray-100 text-gray-500'}`}>
+                        {s.attendance_status || '—'}
+                      </span>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        {['present', 'absent', 'leave'].map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleStatusChange(s.student_id, opt)}
+                            className={`rounded-sm border px-2 py-1.5 text-xs font-medium capitalize transition ${
+                              status === opt ? STATUS_COLORS[opt] : 'border-ink/15 text-ink/50'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {isLocked && s.attendance_id && (
+                    <button
+                      onClick={() => {
+                        setEditRequestModal({ attendanceId: s.attendance_id, studentName: s.full_name });
+                        setEditReason('');
+                        setEditSuccess('');
+                      }}
+                      className="mt-3 w-full rounded-sm border border-ink/20 px-2 py-1.5 text-xs text-ink/70 hover:border-accent hover:text-accent transition"
+                    >
+                      Request Edit
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -239,7 +294,8 @@ const MarkAttendancePage = () => {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Submit Button */}
@@ -248,7 +304,7 @@ const MarkAttendancePage = () => {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded-sm bg-ink px-6 py-2 text-sm font-medium text-canvas transition hover:bg-ink/80 disabled:opacity-50"
+            className="w-full rounded-sm bg-ink px-6 py-2.5 text-sm font-medium text-canvas transition hover:bg-ink/80 disabled:opacity-50 sm:w-auto"
           >
             {submitting ? 'Submitting…' : 'Submit & Lock Attendance'}
           </button>

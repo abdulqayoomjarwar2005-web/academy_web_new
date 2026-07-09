@@ -100,7 +100,42 @@ const AttendanceHistoryPage = () => {
         <div className="py-16 text-center text-ink/40">No attendance records found.</div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-sm border border-ink/10">
+          {/* Mobile card list */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {records.map((r) => (
+              <div key={r.id} className="rounded-sm border border-ink/10 bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{r.full_name}</p>
+                    <p className="font-mono text-[11px] text-ink/50">{r.student_code}</p>
+                  </div>
+                  <span className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-500'}`}>
+                    {r.status}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <p className="text-ink/40">Date</p>
+                    <p className="text-ink/80">{r.attendance_date}</p>
+                  </div>
+                  <div>
+                    <p className="text-ink/40">Class / Section</p>
+                    <p className="text-ink/80">{r.class_name} {r.section ? `· ${r.section}` : ''}</p>
+                  </div>
+                  <div>
+                    <p className="text-ink/40">Marked By</p>
+                    <p className="text-ink/80">{r.marked_by}</p>
+                  </div>
+                  <div>
+                    <p className="text-ink/40">Submitted</p>
+                    <p className="text-ink/80">{r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
@@ -138,7 +173,7 @@ const AttendanceHistoryPage = () => {
           </div>
 
           {/* Pagination */}
-          <div className="mt-4 flex items-center justify-between text-sm text-ink/60">
+          <div className="mt-4 flex flex-col gap-3 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between">
             <span>{pagination.total} records total</span>
             <div className="flex gap-2">
               <button

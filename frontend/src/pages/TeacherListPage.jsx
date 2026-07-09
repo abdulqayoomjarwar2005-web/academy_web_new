@@ -166,8 +166,79 @@ const TeacherListPage = () => {
         </div>
       )}
 
+      {/* Mobile card list */}
+      <div className="mt-6 flex flex-col gap-3 md:hidden">
+        {loading ? (
+          <div className="rounded-sm border border-ink/10 bg-white px-4 py-8 text-center text-sm text-ink/50">
+            Loading teachers…
+          </div>
+        ) : teachers.length === 0 ? (
+          <div className="rounded-sm border border-ink/10 bg-white px-4 py-8 text-center text-sm text-ink/50">
+            No teachers found.
+          </div>
+        ) : (
+          teachers.map((teacher) => (
+            <div key={teacher.id} className="rounded-sm border border-ink/10 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <button
+                    onClick={() => navigate(`/teachers/${teacher.id}`)}
+                    className="text-left font-medium text-ink hover:text-accent"
+                  >
+                    {teacher.teacher_name}
+                  </button>
+                  <p className="mt-0.5 font-mono text-[11px] text-ink/50">{teacher.teacher_id}</p>
+                </div>
+                <StatusBadge status={teacher.status} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <div>
+                  <p className="text-ink/40">Subject</p>
+                  <p className="text-ink/80">{teacher.subject}</p>
+                </div>
+                <div>
+                  <p className="text-ink/40">Contact</p>
+                  <p className="text-ink/80">{teacher.contact_number}</p>
+                </div>
+                <div>
+                  <p className="text-ink/40">Salary</p>
+                  <p className="text-ink/80">
+                    {Number(teacher.salary).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-ink/40">Joining Date</p>
+                  <p className="text-ink/80">
+                    {teacher.joining_date
+                      ? new Date(teacher.joining_date).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-end gap-4 border-t border-ink/5 pt-3">
+                <Link to={`/teachers/${teacher.id}`} className="text-xs font-medium text-ink/60 hover:text-ink">
+                  View
+                </Link>
+                <Link to={`/teachers/${teacher.id}/edit`} className="text-xs font-medium text-accent hover:text-accent/80">
+                  Edit
+                </Link>
+                <button onClick={() => setDeleteTarget(teacher)} className="text-xs font-medium text-red-600 hover:text-red-700">
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Table */}
-      <div className="mt-6 overflow-x-auto rounded-sm border border-ink/10 bg-white">
+      <div className="mt-6 hidden overflow-x-auto rounded-sm border border-ink/10 bg-white md:block">
         <table className="min-w-full divide-y divide-ink/10 text-sm">
           <thead className="bg-ink/[0.03]">
             <tr>
@@ -254,7 +325,7 @@ const TeacherListPage = () => {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-ink/60">
+        <div className="mt-4 flex flex-col gap-3 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between">
           <p>
             Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} teachers
           </p>

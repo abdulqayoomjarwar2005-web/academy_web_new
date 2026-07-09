@@ -178,7 +178,7 @@ const TeacherFormPage = () => {
             </select>
           </Field>
 
-          <div className="col-span-full mt-2 flex gap-3">
+          <div className="col-span-full mt-2 flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={isSubmitting}

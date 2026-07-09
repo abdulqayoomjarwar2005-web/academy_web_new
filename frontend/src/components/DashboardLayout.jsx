@@ -1,189 +1,244 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import NotificationBell from './NotificationBell';
+// NotificationBell.jsx — Phase 13 (Notifications)
+//
+// A self-contained bell icon that:
+//   • Polls unread count every 30 s (stops when dropdown is open)
+//   • Shows a red badge with count when there are unread items
+//   • Opens a compact dropdown listing the latest 10 notifications
+//   • Lets the user mark individual items read, mark all read, or dismiss
+//   • Links to the full /notifications page
+//
+// Usage (in DashboardLayout header):
+//   import NotificationBell from './NotificationBell';
+//   ...
+//   <NotificationBell />
 
-const roleLabels = { owner: 'Owner', admin: 'Administrator', teacher: 'Teacher' };
-const roleBadgeStyle = {
-  owner:   { background: 'rgba(201,168,76,0.15)', color: '#A07828', border: '1px solid rgba(201,168,76,0.4)' },
-  admin:   { background: 'rgba(45,86,144,0.12)', color: '#1A3557', border: '1px solid rgba(45,86,144,0.3)' },
-  teacher: { background: 'rgba(16,122,90,0.10)', color: '#0B6B4E', border: '1px solid rgba(16,122,90,0.3)' },
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  fetchUnreadCount,
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+} from '../utils/notificationApi';
+
+// ── Type → icon mapping ───────────────────────────────────────────────────────
+const TYPE_ICONS = {
+  FEE_RECEIVED:              '💰',
+  ATTENDANCE_SUBMITTED:      '📋',
+  ATTENDANCE_CHANGE_REQUEST: '🔄',
+  STUDENT_ADDED:             '🎓',
+  TEACHER_ADDED:             '👨‍🏫',
 };
 
-const Icon = ({ d, size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-);
+function typeIcon(type) {
+  return TYPE_ICONS[type] || '🔔';
+}
 
-const navItems = (can) => [
-  { to: '/students',              label: 'Students',      icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', show: true },
-  { to: '/teachers',             label: 'Teachers',      icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', show: can.teachers },
-  { to: '/attendance',           label: 'Attendance',    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', show: true },
-  { to: '/fees/dashboard',       label: 'Fees',          icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', show: true },
-  { to: '/defaulters',           label: 'Unpaid Fees',   icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', show: true, alert: true },
-  { to: '/expenses/dashboard',   label: 'Expenses',      icon: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z', show: can.expenses },
-  { to: '/profit-loss/dashboard',label: 'Profit & Loss', icon: 'M18 20V10M12 20V4M6 20v-6', show: can.profitLoss },
-  { to: '/reports/export',       label: 'Reports',       icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8', show: true },
-  { to: '/audit',                label: 'Activity Log',  icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', show: can.audit },
-];
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins  = Math.floor(diff / 60000);
+  if (mins < 1)  return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
-const DashboardLayout = ({ children, title }) => {
-  const { user, logout } = useAuth();
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const can = {
-    teachers:  user?.role === 'owner' || user?.role === 'admin',
-    expenses:  user?.role === 'owner' || user?.role === 'admin',
-    profitLoss:user?.role === 'owner' || user?.role === 'admin',
-    audit:     user?.role === 'owner' || user?.role === 'admin',
+const NotificationBell = () => {
+  const navigate = useNavigate();
+
+  const [unread, setUnread]       = useState(0);
+  const [open, setOpen]           = useState(false);
+  const [items, setItems]         = useState([]);
+  const [loading, setLoading]     = useState(false);
+
+  const panelRef = useRef(null);
+  const pollRef  = useRef(null);
+
+  // ── Poll unread count ─────────────────────────────────────────────────────
+
+  const refreshCount = useCallback(async () => {
+    try {
+      const data = await fetchUnreadCount();
+      setUnread(data.count ?? 0);
+    } catch {
+      // silently ignore — may not be logged in yet
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCount();
+    pollRef.current = setInterval(refreshCount, 30_000);
+    return () => clearInterval(pollRef.current);
+  }, [refreshCount]);
+
+  // ── Load items when dropdown opens ───────────────────────────────────────
+
+  const loadItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchNotifications({ limit: 10 });
+      setItems(data.rows || []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleToggle = () => {
+    if (!open) loadItems();
+    setOpen((v) => !v);
   };
 
-  const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };
+  // ── Close on outside click ────────────────────────────────────────────────
 
-  const isActive = (to) => location.pathname.startsWith(to);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
-  const visibleNav = navItems(can).filter(n => n.show);
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  const handleMarkRead = async (id) => {
+    await markNotificationRead(id).catch(() => {});
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    setUnread((c) => Math.max(0, c - 1));
+  };
+
+  const handleDelete = async (id) => {
+    const wasUnread = items.find((n) => n.id === id)?.is_read === false;
+    await deleteNotification(id).catch(() => {});
+    setItems((prev) => prev.filter((n) => n.id !== id));
+    if (wasUnread) setUnread((c) => Math.max(0, c - 1));
+  };
+
+  const handleMarkAll = async () => {
+    await markAllNotificationsRead().catch(() => {});
+    setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnread(0);
+  };
+
+  const goToPage = () => {
+    setOpen(false);
+    navigate('/notifications');
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F6F9', fontFamily: "'Inter', system-ui, sans-serif" }}>
-
-      {/* ── Header ── */}
-      <header style={{ background: '#0B1F3A', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, zIndex: 50 }}>
-
-        {/* Gold accent line */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg, #C9A84C 0%, #E2C97E 50%, rgba(201,168,76,0.2) 100%)' }} />
-
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
-
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-            <div style={{ width: 36, height: 36, background: 'rgba(201,168,76,0.15)', border: '1.5px solid rgba(201,168,76,0.45)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
-            </div>
-            <div className="hidden sm:block">
-              <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.88rem', fontWeight: 600, color: '#F4F6F9', lineHeight: 1.2 }}>Nation Builders Institute</div>
-              <div style={{ fontSize: '0.58rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginTop: 1 }}>of Learning Larkana</div>
-            </div>
-          </div>
-
-          {/* Desktop Nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }} className="hidden xl:flex">
-            {visibleNav.map(({ to, label, icon, alert }) => {
-              const active = isActive(to);
-              return (
-                <Link key={to} to={to} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.35rem',
-                  padding: '0.4rem 0.7rem', borderRadius: 4,
-                  fontSize: '0.78rem', fontWeight: active ? 600 : 500,
-                  color: active ? '#C9A84C' : alert ? '#FDA4AF' : 'rgba(244,246,249,0.7)',
-                  background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
-                  textDecoration: 'none', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                  letterSpacing: '0.01em',
-                }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#F4F6F9'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.color = alert ? '#FDA4AF' : 'rgba(244,246,249,0.7)'; e.currentTarget.style.background = 'transparent'; }}}
-                >
-                  <Icon d={icon} size={13} />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-
-            {/* User info */}
-            <div className="hidden sm:flex" style={{ alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#F4F6F9', lineHeight: 1.2 }}>{user?.fullName}</div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-                  <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', borderRadius: 2, ...roleBadgeStyle[user?.role] }}>
-                    {roleLabels[user?.role] || user?.role}
-                  </span>
-                </div>
-              </div>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(201,168,76,0.2)', border: '2px solid rgba(201,168,76,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.85rem', fontWeight: 700, color: '#C9A84C' }}>
-                  {(user?.fullName || 'U').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            <NotificationBell />
-
-            <button onClick={handleLogout} style={{
-              padding: '0.35rem 0.85rem', borderRadius: 4,
-              border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(244,246,249,0.7)', fontSize: '0.75rem', fontWeight: 500,
-              cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#F4F6F9'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(244,246,249,0.7)'; }}
-            >
-              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={13} />
-              Sign Out
-            </button>
-
-            {/* Mobile hamburger */}
-            <button onClick={() => setMobileOpen(v => !v)} className="xl:hidden"
-              style={{ background: 'none', border: 'none', color: '#F4F6F9', cursor: 'pointer', padding: 4 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {mobileOpen
-                  ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
-                  : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
-                }
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile dropdown menu */}
-        {mobileOpen && (
-          <div className="xl:hidden" style={{ background: '#122847', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '0.5rem 1rem 1rem' }}>
-            {visibleNav.map(({ to, label, icon, alert }) => (
-              <Link key={to} to={to} onClick={() => setMobileOpen(false)} style={{
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                padding: '0.65rem 0.75rem', borderRadius: 4, margin: '0.15rem 0',
-                fontSize: '0.85rem', fontWeight: 500,
-                color: alert ? '#FDA4AF' : isActive(to) ? '#C9A84C' : 'rgba(244,246,249,0.8)',
-                background: isActive(to) ? 'rgba(201,168,76,0.1)' : 'transparent',
-                textDecoration: 'none',
-              }}>
-                <Icon d={icon} size={15} />
-                {label}
-              </Link>
-            ))}
-          </div>
+    <div className="relative" ref={panelRef}>
+      {/* Bell button */}
+      <button
+        onClick={handleToggle}
+        aria-label="Notifications"
+        className="relative flex h-8 w-8 items-center justify-center rounded border border-ink/10 text-ink/60 hover:bg-gray-50 hover:text-ink focus:outline-none"
+      >
+        {/* Bell SVG */}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+             className="h-4 w-4" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        {/* Badge */}
+        {unread > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-[3px] text-[10px] font-bold leading-none text-white">
+            {unread > 99 ? '99+' : unread}
+          </span>
         )}
-      </header>
+      </button>
 
-      {/* ── Page title bar ── */}
-      {title && (
-        <div style={{ background: 'white', borderBottom: '1px solid #E2E8F0', padding: '0.875rem 1.5rem' }}>
-          <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: 3, height: 18, background: '#C9A84C', borderRadius: 2 }} />
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1rem', fontWeight: 600, color: '#0B1F3A', margin: 0 }}>{title}</h2>
+      {/* Dropdown panel */}
+      {open && (
+        <div className="fixed left-3 right-3 top-16 z-50 rounded-md border border-ink/10 bg-white shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-10 sm:w-80">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-ink/8 px-4 py-3">
+            <span className="text-sm font-semibold text-ink">Notifications</span>
+            {unread > 0 && (
+              <button
+                onClick={handleMarkAll}
+                className="text-xs text-accent hover:underline"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <ul className="max-h-96 overflow-y-auto divide-y divide-ink/5">
+            {loading ? (
+              <li className="px-4 py-6 text-center text-sm text-ink/40">Loading…</li>
+            ) : items.length === 0 ? (
+              <li className="px-4 py-6 text-center text-sm text-ink/40">No notifications yet</li>
+            ) : (
+              items.map((n) => (
+                <li
+                  key={n.id}
+                  className={`group flex items-start gap-3 px-4 py-3 ${
+                    n.is_read ? 'opacity-60' : 'bg-blue-50/40'
+                  } hover:bg-gray-50`}
+                >
+                  {/* Icon */}
+                  <span className="mt-0.5 shrink-0 text-base">{typeIcon(n.type)}</span>
+
+                  {/* Body */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-ink leading-snug">{n.title}</p>
+                    <p className="mt-0.5 text-xs text-ink/60 leading-snug line-clamp-2">{n.body}</p>
+                    <p className="mt-1 text-[10px] text-ink/40">{timeAgo(n.created_at)}</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex shrink-0 flex-col gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                    {!n.is_read && (
+                      <button
+                        onClick={() => handleMarkRead(n.id)}
+                        title="Mark as read"
+                        className="rounded p-0.5 text-ink/40 hover:text-accent"
+                      >
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                          <path fillRule="evenodd"
+                                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(n.id)}
+                      title="Dismiss"
+                      className="rounded p-0.5 text-ink/40 hover:text-red-500"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              ))
+            )}
+          </ul>
+
+          {/* Footer */}
+          <div className="border-t border-ink/8 px-4 py-2.5">
+            <button
+              onClick={goToPage}
+              className="w-full text-center text-xs font-medium text-accent hover:underline"
+            >
+              View all notifications
+            </button>
           </div>
         </div>
       )}
-
-      {/* ── Main content ── */}
-      <main style={{ maxWidth: 1400, margin: '0 auto', padding: '2rem 1.5rem' }}>
-        {children}
-      </main>
-
-      {/* ── Footer ── */}
-      <footer style={{ marginTop: 'auto', borderTop: '1px solid #E2E8F0', background: 'white', padding: '1rem 1.5rem', textAlign: 'center' }}>
-        <p style={{ fontSize: '0.7rem', color: '#8A9BB0', letterSpacing: '0.05em' }}>
-          © {new Date().getFullYear()} Nation Builders Institute of Learning Larkana &nbsp;·&nbsp; All Rights Reserved
-        </p>
-      </footer>
     </div>
   );
 };
 
-export default DashboardLayout;
+export default NotificationBell;

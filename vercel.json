@@ -1,0 +1,14 @@
+{
+    "experimentalServices": {
+        "backend": {
+            "root": "backend",
+            "mountPath": "/api"
+        },
+        "frontend": {
+            "root": "frontend",
+            "mountPath": "/",
+            "framework": "vite",
+            "buildCommand": "npm install && npm run build"
+        }
+    }
+}

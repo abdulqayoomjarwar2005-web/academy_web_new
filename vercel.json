@@ -1,7 +1,9 @@
 {
   "services": {
     "backend": {
-      "root": "backend"
+      "root": "backend",
+      "framework": "express",
+      "entrypoint": "src/server.js"
     },
     "frontend": {
       "root": "frontend"

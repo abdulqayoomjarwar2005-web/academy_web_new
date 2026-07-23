@@ -8,5 +8,9 @@
     "frontend": {
       "root": "frontend"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "backend" },
+    { "source": "/(.*)", "destination": "frontend" }
+  ]
 }

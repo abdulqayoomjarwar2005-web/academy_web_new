@@ -19,6 +19,53 @@ const widgetIcons = {
   'Profit & Loss':       'M18 20V10M12 20V4M6 20v-6',
 };
 
+// ── Quick Actions ─────────────────────────────────────────
+const quickActionsByRole = {
+  owner: [
+    { label: 'Add Student',     to: '/students/new',    icon: 'M12 4v16m8-8H4' },
+    { label: 'Add Teacher',     to: '/teachers/new',    icon: 'M12 4v16m8-8H4' },
+    { label: 'Mark Attendance', to: '/attendance/mark',  icon: 'M12 4v16m8-8H4' },
+    { label: 'Record Expense',  to: '/expenses/new',     icon: 'M12 4v16m8-8H4' },
+    { label: 'Generate Fees',   to: '/fees/generate',    icon: 'M12 4v16m8-8H4' },
+  ],
+  admin: [
+    { label: 'Add Student',     to: '/students/new',    icon: 'M12 4v16m8-8H4' },
+    { label: 'Add Teacher',     to: '/teachers/new',    icon: 'M12 4v16m8-8H4' },
+    { label: 'Mark Attendance', to: '/attendance/mark',  icon: 'M12 4v16m8-8H4' },
+    { label: 'Record Expense',  to: '/expenses/new',     icon: 'M12 4v16m8-8H4' },
+    { label: 'Generate Fees',   to: '/fees/generate',    icon: 'M12 4v16m8-8H4' },
+  ],
+  teacher: [
+    { label: 'Mark Attendance', to: '/attendance/mark', icon: 'M12 4v16m8-8H4' },
+  ],
+};
+
+const QuickActions = ({ role }) => {
+  const actions = quickActionsByRole[role] || [];
+  if (!actions.length) return null;
+  return (
+    <div style={{ marginBottom: '2rem' }}>
+      <SectionHead title="Quick Actions" sub="Jump straight to common tasks" />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+        {actions.map(a => (
+          <Link key={a.to} to={a.to} style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.6rem 1.1rem', borderRadius: 6,
+            background: '#0B1F3A', color: '#F4F6F9',
+            fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none',
+            boxShadow: '0 1px 4px rgba(11,31,58,0.15)',
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round">
+              <path d={a.icon}/>
+            </svg>
+            {a.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const fmtMoney  = n => new Intl.NumberFormat('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(parseFloat(n || 0));
 const fmtNumber = n => new Intl.NumberFormat('en-US').format(parseInt(n || 0, 10));
 
@@ -209,6 +256,8 @@ const RoleDashboard = () => {
           {user?.role === 'owner' ? 'Institution Owner' : user?.role === 'admin' ? 'Administrator' : 'Teacher'}
         </div>
       </div>
+
+      <QuickActions role={user?.role} />
 
       {error && (
         <div style={{ padding: '0.75rem 1rem', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.82rem', marginBottom: '1.5rem' }}>

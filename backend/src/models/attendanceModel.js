@@ -31,14 +31,19 @@ const AttendanceModel = {
          s.student_id    AS student_code,
          s.student_name,
          s.class,
-         
+
          a.id            AS attendance_id,
          a.status        AS attendance_status,
          a.is_locked,
-         a.submitted_at
+         a.submitted_at,
+
+         f.status        AS fee_status
        FROM students s
        LEFT JOIN attendance a
          ON a.student_id = s.id AND a.attendance_date = $1
+       LEFT JOIN fees f
+         ON f.student_id = s.id
+         AND TO_CHAR(f.fee_month, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
        WHERE s.status = 'active' ${classFilter}
        ORDER BY s.class, s.student_name`,
       params

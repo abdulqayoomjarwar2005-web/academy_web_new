@@ -66,6 +66,40 @@ const ClassTagInput = ({ classes, setClasses }) => {
   );
 };
 
+// Generates a random, easy-to-read temporary password (avoids
+// confusing look-alike characters like 0/O and 1/l/I).
+const generatePassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let pwd = '';
+  for (let i = 0; i < 10; i++) {
+    pwd += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return pwd;
+};
+
+// Small reusable "copy to clipboard" button.
+const CopyButton = ({ value, label = 'Copy' }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard may be unavailable — fail silently
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="rounded-sm border border-ink/15 px-2.5 py-1 text-xs font-medium text-ink transition hover:bg-ink/5"
+    >
+      {copied ? 'Copied!' : label}
+    </button>
+  );
+};
+
 const TeacherAccountPanel = ({ teacherId }) => {
   const [loading, setLoading] = useState(true);
   const [account, setAccount] = useState(null);
@@ -78,6 +112,10 @@ const TeacherAccountPanel = ({ teacherId }) => {
   const [password, setPassword] = useState('');
   const [newClasses, setNewClasses] = useState([]);
 
+  // Holds the just-created credentials so they can be shown + copied
+  // after submission (the server response doesn't echo the password back).
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+
   // Edit-classes state
   const [editingClasses, setEditingClasses] = useState(false);
   const [classDraft, setClassDraft] = useState([]);
@@ -85,6 +123,7 @@ const TeacherAccountPanel = ({ teacherId }) => {
   // Reset-password state
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
+  const [resetCredentials, setResetCredentials] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -113,6 +152,7 @@ const TeacherAccountPanel = ({ teacherId }) => {
     try {
       const data = await createTeacherAccount(teacherId, { email, password, classes: newClasses });
       setMessage(data.message);
+      setCreatedCredentials({ email, password });
       setEmail('');
       setPassword('');
       setNewClasses([]);
@@ -165,6 +205,7 @@ const TeacherAccountPanel = ({ teacherId }) => {
     try {
       const data = await resetTeacherPassword(teacherId, tempPassword);
       setMessage(data.message);
+      setResetCredentials({ email: account.email, password: tempPassword });
       setTempPassword('');
       setShowResetPassword(false);
     } catch (err) {
@@ -196,6 +237,54 @@ const TeacherAccountPanel = ({ teacherId }) => {
         </div>
       )}
 
+      {/* Just-created credentials — shown once, ready to copy and send */}
+      {createdCredentials && (
+        <div className="mt-4 max-w-md rounded-sm border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
+            Share these with the teacher
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="text-sm text-ink">Email: <strong>{createdCredentials.email}</strong></span>
+            <CopyButton value={createdCredentials.email} />
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="text-sm text-ink">Password: <strong>{createdCredentials.password}</strong></span>
+            <CopyButton value={createdCredentials.password} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreatedCredentials(null)}
+            className="mt-2 text-xs font-medium text-ink/50 hover:text-ink"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Just-reset credentials — same idea for password resets */}
+      {resetCredentials && (
+        <div className="mt-4 max-w-md rounded-sm border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
+            New password — share with the teacher
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="text-sm text-ink">Email: <strong>{resetCredentials.email}</strong></span>
+            <CopyButton value={resetCredentials.email} />
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="text-sm text-ink">Password: <strong>{resetCredentials.password}</strong></span>
+            <CopyButton value={resetCredentials.password} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setResetCredentials(null)}
+            className="mt-2 text-xs font-medium text-ink/50 hover:text-ink"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {!account?.hasAccount ? (
         <form onSubmit={handleCreateAccount} className="mt-4 max-w-md space-y-4">
           <div>
@@ -212,9 +301,18 @@ const TeacherAccountPanel = ({ teacherId }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink/60">
-              Temporary password
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-ink/60">
+                Temporary password
+              </label>
+              <button
+                type="button"
+                onClick={() => setPassword(generatePassword())}
+                className="text-xs font-medium text-accent hover:text-accent/80"
+              >
+                Generate password
+              </button>
+            </div>
             <input
               type="text"
               required
@@ -222,7 +320,7 @@ const TeacherAccountPanel = ({ teacherId }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-2 w-full rounded-sm border border-ink/15 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-              placeholder="At least 8 characters"
+              placeholder="At least 8 characters, or click Generate password"
             />
             <p className="mt-1 text-xs text-ink/40">The teacher will be asked to change this on first login.</p>
           </div>
@@ -334,28 +432,37 @@ const TeacherAccountPanel = ({ teacherId }) => {
           </div>
 
           {showResetPassword && (
-            <form onSubmit={handleResetPassword} className="mt-2 flex max-w-md items-end gap-3">
-              <div className="flex-1">
+            <form onSubmit={handleResetPassword} className="mt-2 max-w-md space-y-3">
+              <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-ink/60">
                   New temporary password
                 </label>
+                <button
+                  type="button"
+                  onClick={() => setTempPassword(generatePassword())}
+                  className="text-xs font-medium text-accent hover:text-accent/80"
+                >
+                  Generate password
+                </button>
+              </div>
+              <div className="flex items-end gap-3">
                 <input
                   type="text"
                   required
                   minLength={8}
                   value={tempPassword}
                   onChange={(e) => setTempPassword(e.target.value)}
-                  className="mt-2 w-full rounded-sm border border-ink/15 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-                  placeholder="At least 8 characters"
+                  className="flex-1 rounded-sm border border-ink/15 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  placeholder="At least 8 characters, or click Generate password"
                 />
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="rounded-sm bg-ink px-4 py-2.5 text-sm font-medium text-canvas transition hover:bg-ink/90 disabled:opacity-60"
+                >
+                  {busy ? 'Saving…' : 'Save'}
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={busy}
-                className="rounded-sm bg-ink px-4 py-2.5 text-sm font-medium text-canvas transition hover:bg-ink/90 disabled:opacity-60"
-              >
-                {busy ? 'Saving…' : 'Save'}
-              </button>
             </form>
           )}
         </div>

@@ -35,7 +35,8 @@ const expenseRoutes       = require('./routes/expenseRoutes');    // Phase 8
 const profitLossRoutes    = require('./routes/profitLossRoutes'); // Phase 9
 const exportRoutes        = require('./routes/exportRoutes');     // Phase 11
 const auditRoutes         = require('./routes/auditRoutes');      // Phase 12
-const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13 ← NEW
+const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13
+const classRoutes         = require('./routes/classRoutes');        // Classes ← NEW
 
 // ── Phase 12: ensure audit_logs table exists ─────────────────────────────────
 const auditModel = require('./models/auditModel');
@@ -47,6 +48,12 @@ auditModel.createTable().catch((err) =>
 const notificationModel = require('./models/notificationModel');
 notificationModel.createTable().catch((err) =>
   console.error('[Notifications] createTable error:', err.message)
+);
+
+// ── Classes: ensure classes table exists ──────────────────────────────────────
+const classModel = require('./models/classModel');
+classModel.createTable().catch((err) =>
+  console.error('[Classes] createTable error:', err.message)
 );
 
 const app = express();
@@ -78,7 +85,8 @@ app.use('/api/expenses',       expenseRoutes);    // Phase 8
 app.use('/api/profit-loss',    profitLossRoutes); // Phase 9
 app.use('/api/exports',        exportRoutes);     // Phase 11
 app.use('/api/audit',          auditRoutes);      // Phase 12
-app.use('/api/notifications',  notificationRoutes); // Phase 13 ← NEW
+app.use('/api/notifications',  notificationRoutes); // Phase 13
+app.use('/api/classes',         classRoutes);        // Classes ← NEW
 
 // 404 handler
 app.use((req, res) => {

@@ -23,7 +23,12 @@ const getMarkPage = async (req, res) => {
       return res.status(403).json({ message: 'You have not been assigned to any class yet. Contact the administrator.' });
     }
 
-    const students = await AttendanceModel.getStudentsForDate(date, classIn);
+    const rawStudents = await AttendanceModel.getStudentsForDate(date, classIn);
+    // Convert fee_status into a simple paid/not-paid flag — never expose amounts here.
+    const students = rawStudents.map(({ fee_status, ...rest }) => ({
+      ...rest,
+      feePaid: fee_status === 'paid',
+    }));
     const summary = await AttendanceModel.getDaySummary(date);
     const isLocked = await AttendanceModel.isDateLocked(date);
 

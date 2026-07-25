@@ -11,6 +11,17 @@ const STATUS_COLORS = {
 
 const today = () => new Date().toISOString().split('T')[0];
 
+// Small badge showing fee status without ever revealing the amount.
+const FeeBadge = ({ paid }) => (
+  <span
+    className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium ${
+      paid ? 'border-green-300 bg-green-100 text-green-800' : 'border-red-300 bg-red-100 text-red-800'
+    }`}
+  >
+    {paid ? 'Fees Paid' : 'Fees Due'}
+  </span>
+);
+
 const MarkAttendancePage = () => {
   const { user } = useAuth();
   const [date, setDate] = useState(today());
@@ -187,6 +198,7 @@ const MarkAttendancePage = () => {
                       <p className="font-mono text-[11px] text-ink/50">{s.student_code}</p>
                       <p className="mt-0.5 text-xs text-ink/60">{s.class_name}{s.section ? ` · ${s.section}` : ''}</p>
                     </div>
+                    <FeeBadge paid={s.feePaid} />
                   </div>
 
                   <div className="mt-3">
@@ -237,6 +249,7 @@ const MarkAttendancePage = () => {
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Class</th>
                 <th className="px-4 py-3">Section</th>
+                <th className="px-4 py-3">Fees</th>
                 <th className="px-4 py-3">Status</th>
                 {isLocked && <th className="px-4 py-3">Actions</th>}
               </tr>
@@ -250,6 +263,7 @@ const MarkAttendancePage = () => {
                     <td className="px-4 py-3 font-medium text-ink">{s.full_name}</td>
                     <td className="px-4 py-3 text-ink/70">{s.class_name}</td>
                     <td className="px-4 py-3 text-ink/70">{s.section}</td>
+                    <td className="px-4 py-3"><FeeBadge paid={s.feePaid} /></td>
                     <td className="px-4 py-3">
                       {isLocked ? (
                         <span className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[s.attendance_status] || 'bg-gray-100 text-gray-500'}`}>

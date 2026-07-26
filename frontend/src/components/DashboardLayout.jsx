@@ -19,6 +19,7 @@ const Icon = ({ d, size = 15 }) => (
 const navItems = (can) => [
   { to: '/students',              label: 'Students',      icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', show: true },
   { to: '/teachers',             label: 'Teachers',      icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', show: can.teachers },
+  { to: '/classes',              label: 'Classes',       icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z', show: can.classes },
   { to: '/attendance',           label: 'Attendance',    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', show: true },
   { to: '/fees/dashboard',       label: 'Fees',          icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', show: true },
   { to: '/defaulters',           label: 'Unpaid Fees',   icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', show: true, alert: true },
@@ -39,6 +40,7 @@ const DashboardLayout = ({ children, title }) => {
     expenses:  user?.role === 'owner' || user?.role === 'admin',
     profitLoss:user?.role === 'owner' || user?.role === 'admin',
     audit:     user?.role === 'owner' || user?.role === 'admin',
+    classes:   user?.role === 'owner' || user?.role === 'admin',
   };
 
   const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };
@@ -58,8 +60,8 @@ const DashboardLayout = ({ children, title }) => {
 
         <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
 
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+          {/* Logo — click to return to the dashboard */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, textDecoration: 'none' }}>
             <div style={{ width: 36, height: 36, background: 'rgba(201,168,76,0.15)', border: '1.5px solid rgba(201,168,76,0.45)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
             </div>
@@ -67,7 +69,7 @@ const DashboardLayout = ({ children, title }) => {
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.88rem', fontWeight: 600, color: '#F4F6F9', lineHeight: 1.2 }}>Nation Builders Institute</div>
               <div style={{ fontSize: '0.58rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginTop: 1 }}>of Learning Larkana</div>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Nav */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }} className="hidden xl:flex">

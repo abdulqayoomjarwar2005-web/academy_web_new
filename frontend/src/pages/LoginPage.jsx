@@ -105,7 +105,7 @@ const LoginPage = () => {
 
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <img src="/logo.png" alt="Nation Builders Institute logo" className="w-11 h-11" style={{ objectFit: 'contain' }} />
+           <img src="/logo.png" alt="Nation Builders Institute logo" className="w-14 h-14" style={{ objectFit: 'contain', filter: 'invert(1)' }} />
             <div>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.85rem', fontWeight: 600, color: '#0B1F3A' }}>Nation Builders Institute</div>
               <div style={{ fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8A9BB0' }}>of Learning Larkana</div>

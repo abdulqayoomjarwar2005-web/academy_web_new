@@ -63,9 +63,7 @@ const FeeReceiptPage = () => {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #C9A84C, #E2C97E, #C9A84C)' }} />
 
               {/* Crest */}
-              <div style={{ width: 56, height: 56, background: 'rgba(201,168,76,0.15)', border: '2px solid rgba(201,168,76,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.5rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
-              </div>
+              <img src="/logo.png" alt="Nation Builders Institute logo" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 0.75rem', display: 'block' }} />
 
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem', fontWeight: 700, color: '#F4F6F9', letterSpacing: '0.02em' }}>
                 Nation Builders Institute of Learning

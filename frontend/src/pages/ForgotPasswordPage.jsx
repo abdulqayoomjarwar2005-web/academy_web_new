@@ -37,9 +37,7 @@ const ForgotPasswordPage = () => {
 
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
-              <div style={{ width: 40, height: 40, background: '#0B1F3A', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.2rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
-              </div>
+              <img src="/logo.png" alt="Nation Builders Institute logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
               <div>
                 <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.85rem', fontWeight: 700, color: '#0B1F3A' }}>Nation Builders Institute</div>
                 <div style={{ fontSize: '0.6rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A9BB0' }}>of Learning Larkana</div>

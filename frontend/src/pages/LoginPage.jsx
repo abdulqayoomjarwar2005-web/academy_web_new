@@ -53,10 +53,7 @@ const LoginPage = () => {
 
           {/* Logo mark */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded"
-              style={{ background: 'rgba(201,168,76,0.15)', border: '1.5px solid rgba(201,168,76,0.5)' }}>
-              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.35rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
-            </div>
+            <img src="/logo.png" alt="Nation Builders Institute logo" className="w-14 h-14" style={{ objectFit: 'contain' }} />
             <div>
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.95rem', color: '#F4F6F9', letterSpacing: '0.02em' }}>
                 Nation Builders
@@ -108,10 +105,7 @@ const LoginPage = () => {
 
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-11 h-11 rounded flex items-center justify-center"
-              style={{ background: '#0B1F3A' }}>
-              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.1rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
-            </div>
+            <img src="/logo.png" alt="Nation Builders Institute logo" className="w-11 h-11" style={{ objectFit: 'contain' }} />
             <div>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.85rem', fontWeight: 600, color: '#0B1F3A' }}>Nation Builders Institute</div>
               <div style={{ fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8A9BB0' }}>of Learning Larkana</div>

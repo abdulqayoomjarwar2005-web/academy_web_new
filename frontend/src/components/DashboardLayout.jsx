@@ -64,9 +64,7 @@ const DashboardLayout = ({ children, title }) => {
           borderBottom: '1px solid rgba(255,255,255,0.07)',
         }}
       >
-        <div style={{ width: 34, height: 34, background: 'rgba(201,168,76,0.15)', border: '1.5px solid rgba(201,168,76,0.45)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.05rem', fontWeight: 700, color: '#C9A84C' }}>N</span>
-        </div>
+        <img src="/logo.png" alt="Nation Builders Institute logo" style={{ width: 34, height: 34, objectFit: 'contain', flexShrink: 0 }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.82rem', fontWeight: 600, color: '#F4F6F9', lineHeight: 1.25 }}>Nation Builders Institute</div>
           <div style={{ fontSize: '0.55rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginTop: 1 }}>of Learning Larkana</div>

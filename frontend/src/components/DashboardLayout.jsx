@@ -72,7 +72,7 @@ const DashboardLayout = ({ children, title }) => {
           </Link>
 
           {/* Desktop Nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }} className="hidden xl:flex">
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', overflowX: 'auto', scrollbarWidth: 'thin', maxWidth: '100%' }} className="hidden xl:flex">
             {visibleNav.map(({ to, label, icon, alert }) => {
               const active = isActive(to);
               return (

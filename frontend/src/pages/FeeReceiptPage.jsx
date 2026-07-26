@@ -63,7 +63,7 @@ const FeeReceiptPage = () => {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #C9A84C, #E2C97E, #C9A84C)' }} />
 
               {/* Crest */}
-              <img src="/logo.png" alt="Nation Builders Institute logo" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 0.75rem', display: 'block' }} />
+              <img src="/logo.png" alt="Nation Builders Institute logo" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 0.75rem', display: 'block', filter: 'invert(1)' }} />
 
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem', fontWeight: 700, color: '#F4F6F9', letterSpacing: '0.02em' }}>
                 Nation Builders Institute of Learning

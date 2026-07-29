@@ -1,34 +1,22 @@
 // auditApi.js — Phase 12 (Audit Log System)
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${API}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
-    ...opts,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
-  return data;
-}
+import api from './api';
 
 // Paginated log list
 // params: { page, limit, category, action, userId, dateFrom, dateTo, search }
 export function fetchAuditLogs(params = {}) {
-  const qs = new URLSearchParams(
-    Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
-  ).toString();
-  return apiFetch(`/audit${qs ? `?${qs}` : ''}`);
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== '' && v != null)
+  );
+  return api.get('/audit', { params: cleanParams }).then((res) => res.data);
 }
 
 // Summary stats for dashboard card
 export function fetchAuditSummary() {
-  return apiFetch('/audit/summary');
+  return api.get('/audit/summary').then((res) => res.data);
 }
 
 // Filter dropdown options (categories + actions)
 export function fetchAuditFilters(category = '') {
-  const qs = category ? `?category=${encodeURIComponent(category)}` : '';
-  return apiFetch(`/audit/filters${qs}`);
+  const params = category ? { category } : {};
+  return api.get('/audit/filters', { params }).then((res) => res.data);
 }

@@ -46,7 +46,7 @@ router.get('/dashboard/stats', authenticate, getDashboardStats);
  * GET /api/owner/settings
  * Example route restricted to owner only.
  */
-router.get('/owner/settings', authenticate, authorize('owner'), (req, res) => {
+router.get('/owner/settings', authenticate, authorize('owner', 'admin'), (req, res) => {
   return res.status(200).json({ message: 'Owner-only settings data' });
 });
 

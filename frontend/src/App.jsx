@@ -67,8 +67,11 @@ import ReportsExportPage from './pages/ReportsExportPage';
 // Audit Log page (Phase 12)
 import AuditLogPage from './pages/AuditLogPage';
 
-// Notifications page (Phase 13) ← NEW
+// Notifications page (Phase 13)
 import NotificationsPage from './pages/NotificationsPage';
+
+// Admin management page ← NEW
+import AdminListPage from './pages/AdminListPage';
 
 const App = () => (
   <AuthProvider>
@@ -134,8 +137,11 @@ const App = () => (
         {/* Audit Log (Phase 12) — Owner & Admin only */}
         <Route path="/audit" element={<ProtectedRoute roles={['owner','admin']}><AuditLogPage /></ProtectedRoute>} />
 
-        {/* Notifications (Phase 13) — all authenticated users ← NEW */}
+        {/* Notifications (Phase 13) — all authenticated users */}
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+
+        {/* Admins — owner only ← NEW */}
+        <Route path="/admins" element={<ProtectedRoute roles={['owner']}><AdminListPage /></ProtectedRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

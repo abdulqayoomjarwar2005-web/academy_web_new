@@ -36,7 +36,8 @@ const profitLossRoutes    = require('./routes/profitLossRoutes'); // Phase 9
 const exportRoutes        = require('./routes/exportRoutes');     // Phase 11
 const auditRoutes         = require('./routes/auditRoutes');      // Phase 12
 const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13
-const classRoutes         = require('./routes/classRoutes');        // Classes ← NEW
+const classRoutes         = require('./routes/classRoutes');        // Classes
+const userRoutes          = require('./routes/userRoutes');          // Admin management ← NEW
 
 // ── Phase 12: ensure audit_logs table exists ─────────────────────────────────
 const auditModel = require('./models/auditModel');
@@ -86,7 +87,8 @@ app.use('/api/profit-loss',    profitLossRoutes); // Phase 9
 app.use('/api/exports',        exportRoutes);     // Phase 11
 app.use('/api/audit',          auditRoutes);      // Phase 12
 app.use('/api/notifications',  notificationRoutes); // Phase 13
-app.use('/api/classes',         classRoutes);        // Classes ← NEW
+app.use('/api/classes',         classRoutes);        // Classes
+app.use('/api/users',           userRoutes);          // Admin management ← NEW
 
 // 404 handler
 app.use((req, res) => {

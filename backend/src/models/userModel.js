@@ -79,6 +79,23 @@ const UserModel = {
   },
 
   /**
+   * List users belonging to one or more roles (e.g. ['owner','admin']).
+   * Used by the "Manage Admins" screen — owner-only.
+   */
+  async listByRoles(roles) {
+    const result = await pool.query(
+      `SELECT u.id, u.full_name, u.email, u.is_active, u.must_change_password,
+              u.created_at, r.name AS role
+       FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.name = ANY($1::text[])
+       ORDER BY u.created_at DESC`,
+      [roles]
+    );
+    return result.rows;
+  },
+
+  /**
    * Used when an admin sets/resets a password on someone else's behalf
    * (e.g. issuing a temporary password for a teacher). Forces the user
    * to change it on next login, unlike a self-service password change.

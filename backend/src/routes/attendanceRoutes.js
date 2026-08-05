@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   getMarkPage,
+  getMyClasses,
   submitAttendance,
   updateAttendance,
   getHistory,
@@ -19,6 +20,7 @@ const authenticate  = require('../middleware/authenticate');
 const authorize     = require('../middleware/authorize');
 const attachTeacherClasses = require('../middleware/teacherScope');
 const handleValidation = require('../middleware/validate');
+const { auditLog }  = require('../middleware/auditMiddleware');
 
 // All attendance routes require authentication
 router.use(authenticate);
@@ -37,13 +39,22 @@ const validateDate = (field) =>
 // -------------------------------------------------------
 
 /**
- * GET /api/attendance/mark?date=YYYY-MM-DD
- * Fetch student list + existing attendance for a date.
+ * GET /api/attendance/my-classes
+ * Classes available to the current user for the class selector dropdown.
+ */
+router.get('/my-classes', authorize('teacher', 'admin', 'owner'), getMyClasses);
+
+/**
+ * GET /api/attendance/mark?date=YYYY-MM-DD&class=ClassName
+ * Fetch student list + existing attendance for a date, for ONE class at a time.
  */
 router.get(
   '/mark',
   authorize('teacher', 'admin', 'owner'),
-  [validateDate('date')],
+  [
+    validateDate('date'),
+    query('class').trim().notEmpty().withMessage('class is required — select a single class'),
+  ],
   handleValidation,
   getMarkPage
 );
@@ -59,6 +70,7 @@ router.post(
     body('date')
       .notEmpty().withMessage('date is required')
       .matches(ISO_DATE_REGEX).withMessage('date must be YYYY-MM-DD'),
+    body('class').trim().notEmpty().withMessage('class is required — attendance is submitted one class at a time'),
     body('entries')
       .isArray({ min: 1 }).withMessage('entries must be a non-empty array'),
     body('entries.*.studentId')
@@ -68,6 +80,13 @@ router.post(
       .withMessage('Each entry status must be present, absent, or leave'),
   ],
   handleValidation,
+  auditLog({
+    action: 'ATTENDANCE_SUBMITTED',
+    category: 'Attendance',
+    description: (req) => `Submitted attendance for ${req.body?.class} on ${req.body?.date} (${req.body?.entries?.length || 0} students)`,
+    entityType: 'attendance',
+    entityLabel: (req) => `${req.body?.class} — ${req.body?.date}`,
+  }),
   submitAttendance
 );
 
@@ -85,6 +104,13 @@ router.patch(
       .withMessage('status must be present, absent, or leave'),
   ],
   handleValidation,
+  auditLog({
+    action: 'ATTENDANCE_UPDATED',
+    category: 'Attendance',
+    description: (req) => `Changed attendance record ${req.params.attendanceId} to "${req.body?.status}"`,
+    entityType: 'attendance',
+    entityId: (req) => req.params.attendanceId,
+  }),
   updateAttendance
 );
 
@@ -149,6 +175,13 @@ router.post(
     body('reason').trim().notEmpty().withMessage('reason is required'),
   ],
   handleValidation,
+  auditLog({
+    action: 'ATTENDANCE_EDIT_REQUESTED',
+    category: 'Attendance',
+    description: (req) => `Requested edit on attendance record ${req.body?.attendanceId} — reason: ${req.body?.reason}`,
+    entityType: 'attendance',
+    entityId: (req) => req.body?.attendanceId,
+  }),
   createEditRequest
 );
 
@@ -176,6 +209,13 @@ router.patch(
   authorize('admin', 'owner'),
   [param('requestId').isUUID().withMessage('Invalid request ID')],
   handleValidation,
+  auditLog({
+    action: 'ATTENDANCE_EDIT_APPROVED',
+    category: 'Attendance',
+    description: (req) => `Approved attendance edit request ${req.params.requestId}`,
+    entityType: 'attendance_edit_request',
+    entityId: (req) => req.params.requestId,
+  }),
   approveEditRequest
 );
 
@@ -187,6 +227,13 @@ router.patch(
   authorize('admin', 'owner'),
   [param('requestId').isUUID().withMessage('Invalid request ID')],
   handleValidation,
+  auditLog({
+    action: 'ATTENDANCE_EDIT_REJECTED',
+    category: 'Attendance',
+    description: (req) => `Rejected attendance edit request ${req.params.requestId}`,
+    entityType: 'attendance_edit_request',
+    entityId: (req) => req.params.requestId,
+  }),
   rejectEditRequest
 );
 

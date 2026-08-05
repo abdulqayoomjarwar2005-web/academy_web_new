@@ -15,22 +15,34 @@ const AttendanceModel = {
    * Get all students for a given date, joined with existing attendance if any.
    * Used by teachers to load the "mark attendance" form.
    */
-  async getStudentsForDate(date, classIn) {
+  async getStudentsForDate(date, classIn, singleClass) {
     const params = [date];
-    let classFilter = '';
+    const conditions = [];
+    let idx = 2;
 
     if (Array.isArray(classIn)) {
       if (classIn.length === 0) return [];
       params.push(classIn);
-      classFilter = `AND s.class = ANY($2)`;
+      conditions.push(`s.class = ANY($${idx})`);
+      idx++;
     }
+
+    if (singleClass) {
+      params.push(singleClass);
+      conditions.push(`s.class = $${idx}`);
+      idx++;
+    }
+
+    const classFilter = conditions.length ? `AND ${conditions.join(' AND ')}` : '';
 
     const result = await pool.query(
       `SELECT
          s.id            AS student_id,
          s.student_id    AS student_code,
-         s.student_name,
-         s.class,
+         s.student_name  AS full_name,
+         s.father_name,
+         s.class         AS class_name,
+         s.batch,
 
          a.id            AS attendance_id,
          a.status        AS attendance_status,
@@ -55,10 +67,16 @@ const AttendanceModel = {
    * Check whether attendance for a given date is already submitted/locked
    * (any locked record for that date means the session is locked).
    */
-  async isDateLocked(date) {
+  async isDateLocked(date, className) {
+    const params = [date];
+    let classJoin = '';
+    if (className) {
+      params.push(className);
+      classJoin = `JOIN students s ON s.id = a.student_id AND s.class = $2`;
+    }
     const result = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM attendance WHERE attendance_date = $1 AND is_locked = TRUE`,
-      [date]
+      `SELECT COUNT(*) AS cnt FROM attendance a ${classJoin} WHERE a.attendance_date = $1 AND a.is_locked = TRUE`,
+      params
     );
     return parseInt(result.rows[0].cnt, 10) > 0;
   },
@@ -279,17 +297,24 @@ const AttendanceModel = {
    * Summary stats for a given date:
    * total students, present, absent, leave counts.
    */
-  async getDaySummary(date) {
+  async getDaySummary(date, className) {
+    const params = [date];
+    let classJoin = '';
+    if (className) {
+      params.push(className);
+      classJoin = `JOIN students s ON s.id = a.student_id AND s.class = $2`;
+    }
     const result = await pool.query(
       `SELECT
          COUNT(*)                               AS total,
-         COUNT(*) FILTER (WHERE status='present') AS present,
-         COUNT(*) FILTER (WHERE status='absent')  AS absent,
-         COUNT(*) FILTER (WHERE status='leave')   AS leave,
-         BOOL_AND(is_locked)                    AS is_locked
-       FROM attendance
-       WHERE attendance_date = $1`,
-      [date]
+         COUNT(*) FILTER (WHERE a.status='present') AS present,
+         COUNT(*) FILTER (WHERE a.status='absent')  AS absent,
+         COUNT(*) FILTER (WHERE a.status='leave')   AS leave,
+         BOOL_AND(a.is_locked)                    AS is_locked
+       FROM attendance a
+       ${classJoin}
+       WHERE a.attendance_date = $1`,
+      params
     );
     return result.rows[0];
   },

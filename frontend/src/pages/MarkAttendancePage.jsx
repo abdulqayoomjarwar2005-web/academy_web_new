@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { getMarkPage, submitAttendance, updateAttendance, createEditRequest } from '../utils/attendanceApi';
+import { getMarkPage, getMyClasses, submitAttendance, updateAttendance, createEditRequest } from '../utils/attendanceApi';
 import { useAuth } from '../context/AuthContext';
 
 const STATUS_COLORS = {
@@ -25,6 +25,12 @@ const FeeBadge = ({ paid }) => (
 const MarkAttendancePage = () => {
   const { user } = useAuth();
   const [date, setDate] = useState(today());
+
+  const [classOptions, setClassOptions] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState('');
+
   const [students, setStudents] = useState([]);
   const [attendanceMap, setAttendanceMap] = useState({});  // studentId -> status
   const [isLocked, setIsLocked] = useState(false);
@@ -40,12 +46,33 @@ const MarkAttendancePage = () => {
   const [requestingEdit, setRequestingEdit] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
 
+  // Load the classes this user can mark attendance for, once.
+  useEffect(() => {
+    const loadClasses = async () => {
+      setClassesLoading(true);
+      setClassesError('');
+      try {
+        const classes = await getMyClasses();
+        setClassOptions(classes);
+        if (classes.length === 1) {
+          setSelectedClass(classes[0]); // only one class? pick it automatically
+        }
+      } catch (err) {
+        setClassesError(err.response?.data?.message || 'Failed to load your classes');
+      } finally {
+        setClassesLoading(false);
+      }
+    };
+    loadClasses();
+  }, []);
+
   const fetchData = useCallback(async () => {
+    if (!selectedClass) return;
     setLoading(true);
     setError('');
     setSuccessMsg('');
     try {
-      const data = await getMarkPage(date);
+      const data = await getMarkPage(date, selectedClass);
       setStudents(data.students);
       setIsLocked(data.isLocked);
       setSummary(data.summary);
@@ -61,7 +88,7 @@ const MarkAttendancePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  }, [date, selectedClass]);
 
   useEffect(() => {
     fetchData();
@@ -88,7 +115,7 @@ const MarkAttendancePage = () => {
         studentId: s.student_id,
         status: attendanceMap[s.student_id] || 'present',
       }));
-      await submitAttendance(date, entries);
+      await submitAttendance(date, selectedClass, entries);
       setSuccessMsg('Attendance submitted and locked successfully!');
       fetchData();
     } catch (err) {
@@ -120,8 +147,30 @@ const MarkAttendancePage = () => {
 
   return (
     <DashboardLayout title="Mark Attendance">
-      {/* Date Selector */}
-      <div className="mb-6 flex flex-wrap items-center gap-4">
+      {/* Class + Date Selectors */}
+      <div className="mb-6 flex flex-wrap items-end gap-4">
+        <div>
+          <label className="block text-sm font-medium text-ink/70 mb-1">Class</label>
+          {classesLoading ? (
+            <div className="text-sm text-ink/40 py-1.5">Loading classes…</div>
+          ) : classOptions.length === 0 ? (
+            <div className="text-sm text-red-600 py-1.5">
+              {classesError || 'No classes assigned to you yet. Contact the administrator.'}
+            </div>
+          ) : (
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="min-w-[160px] rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+            >
+              <option value="" disabled>Select a class…</option>
+              {classOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-ink/70 mb-1">Date</label>
           <input
@@ -136,193 +185,202 @@ const MarkAttendancePage = () => {
         {isLocked && (
           <div className="flex items-center gap-2 rounded-sm border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
             <span>🔒</span>
-            <span>Attendance for this date is <strong>locked</strong>. To make changes, send an edit request.</span>
+            <span>Attendance for {selectedClass} on this date is <strong>locked</strong>. To make changes, send an edit request.</span>
           </div>
         )}
       </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { label: 'Total',   value: students.length, color: 'bg-white border-ink/15' },
-            { label: 'Present', value: isLocked ? summary.present : presentCount, color: 'bg-green-50 border-green-200' },
-            { label: 'Absent',  value: isLocked ? summary.absent  : absentCount,  color: 'bg-red-50   border-red-200' },
-            { label: 'Leave',   value: isLocked ? summary.leave   : leaveCount,   color: 'bg-yellow-50 border-yellow-200' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className={`rounded-sm border ${color} p-4 text-center`}>
-              <div className="text-2xl font-display text-ink">{value ?? 0}</div>
-              <div className="text-xs text-ink/60 mt-0.5">{label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Error / Success */}
-      {error      && <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
-      {successMsg && <div className="mb-4 rounded-sm border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700">{successMsg}</div>}
-      {editSuccess && <div className="mb-4 rounded-sm border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">{editSuccess}</div>}
-
-      {/* Bulk Actions */}
-      {!isLocked && students.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-ink/60">Mark all:</span>
-          {['present', 'absent', 'leave'].map((s) => (
-            <button
-              key={s}
-              onClick={() => handleMarkAll(s)}
-              className={`rounded-sm border px-3 py-1 text-xs font-medium capitalize ${STATUS_COLORS[s]}`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Student Table */}
-      {loading ? (
-        <div className="py-16 text-center text-ink/40">Loading…</div>
-      ) : students.length === 0 ? (
-        <div className="py-16 text-center text-ink/40">No active students found.</div>
+      {!selectedClass && !classesLoading && classOptions.length > 0 ? (
+        <div className="py-16 text-center text-ink/40">Select a class above to mark attendance.</div>
       ) : (
         <>
-          {/* Mobile card list */}
-          <div className="flex flex-col gap-3 md:hidden">
-            {students.map((s) => {
-              const status = attendanceMap[s.student_id] || 'present';
-              return (
-                <div key={s.student_id} className="rounded-sm border border-ink/10 bg-white p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium text-ink">{s.full_name}</p>
-                      <p className="font-mono text-[11px] text-ink/50">{s.student_code}</p>
-                      <p className="mt-0.5 text-xs text-ink/60">{s.class_name}{s.section ? ` · ${s.section}` : ''}</p>
-                    </div>
-                    <FeeBadge paid={s.feePaid} />
-                  </div>
-
-                  <div className="mt-3">
-                    {isLocked ? (
-                      <span className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[s.attendance_status] || 'bg-gray-100 text-gray-500'}`}>
-                        {s.attendance_status || '—'}
-                      </span>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        {['present', 'absent', 'leave'].map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => handleStatusChange(s.student_id, opt)}
-                            className={`rounded-sm border px-2 py-1.5 text-xs font-medium capitalize transition ${
-                              status === opt ? STATUS_COLORS[opt] : 'border-ink/15 text-ink/50'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {isLocked && s.attendance_id && (
-                    <button
-                      onClick={() => {
-                        setEditRequestModal({ attendanceId: s.attendance_id, studentName: s.full_name });
-                        setEditReason('');
-                        setEditSuccess('');
-                      }}
-                      className="mt-3 w-full rounded-sm border border-ink/20 px-2 py-1.5 text-xs text-ink/70 hover:border-accent hover:text-accent transition"
-                    >
-                      Request Edit
-                    </button>
-                  )}
+          {/* Summary Cards */}
+          {summary && (
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Total',   value: students.length, color: 'bg-white border-ink/15' },
+                { label: 'Present', value: isLocked ? summary.present : presentCount, color: 'bg-green-50 border-green-200' },
+                { label: 'Absent',  value: isLocked ? summary.absent  : absentCount,  color: 'bg-red-50   border-red-200' },
+                { label: 'Leave',   value: isLocked ? summary.leave   : leaveCount,   color: 'bg-yellow-50 border-yellow-200' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className={`rounded-sm border ${color} p-4 text-center`}>
+                  <div className="text-2xl font-display text-ink">{value ?? 0}</div>
+                  <div className="text-xs text-ink/60 mt-0.5">{label}</div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
-          <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
-                <th className="px-4 py-3">Student ID</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Class</th>
-                <th className="px-4 py-3">Section</th>
-                <th className="px-4 py-3">Fees</th>
-                <th className="px-4 py-3">Status</th>
-                {isLocked && <th className="px-4 py-3">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink/5">
-              {students.map((s) => {
-                const status = attendanceMap[s.student_id] || 'present';
-                return (
-                  <tr key={s.student_id} className="hover:bg-ink/2">
-                    <td className="px-4 py-3 font-mono text-xs text-ink/60">{s.student_code}</td>
-                    <td className="px-4 py-3 font-medium text-ink">{s.full_name}</td>
-                    <td className="px-4 py-3 text-ink/70">{s.class_name}</td>
-                    <td className="px-4 py-3 text-ink/70">{s.section}</td>
-                    <td className="px-4 py-3"><FeeBadge paid={s.feePaid} /></td>
-                    <td className="px-4 py-3">
-                      {isLocked ? (
-                        <span className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[s.attendance_status] || 'bg-gray-100 text-gray-500'}`}>
-                          {s.attendance_status || '—'}
-                        </span>
-                      ) : (
-                        <div className="flex gap-2">
-                          {['present', 'absent', 'leave'].map((opt) => (
-                            <label key={opt} className="flex cursor-pointer items-center gap-1 text-xs">
-                              <input
-                                type="radio"
-                                name={`status-${s.student_id}`}
-                                value={opt}
-                                checked={status === opt}
-                                onChange={() => handleStatusChange(s.student_id, opt)}
-                                className="accent-accent"
-                              />
-                              <span className="capitalize">{opt}</span>
-                            </label>
-                          ))}
+          {/* Error / Success */}
+          {error      && <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
+          {successMsg && <div className="mb-4 rounded-sm border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700">{successMsg}</div>}
+          {editSuccess && <div className="mb-4 rounded-sm border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">{editSuccess}</div>}
+
+          {/* Bulk Actions */}
+          {!isLocked && students.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-ink/60">Mark all:</span>
+              {['present', 'absent', 'leave'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleMarkAll(s)}
+                  className={`rounded-sm border px-3 py-1 text-xs font-medium capitalize ${STATUS_COLORS[s]}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Student Table */}
+          {loading ? (
+            <div className="py-16 text-center text-ink/40">Loading…</div>
+          ) : students.length === 0 ? (
+            <div className="py-16 text-center text-ink/40">No active students found in {selectedClass}.</div>
+          ) : (
+            <>
+              {/* Mobile card list */}
+              <div className="flex flex-col gap-3 md:hidden">
+                {students.map((s) => {
+                  const status = attendanceMap[s.student_id] || 'present';
+                  return (
+                    <div key={s.student_id} className="rounded-sm border border-ink/10 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-ink">{s.full_name}</p>
+                          <p className="text-xs text-ink/60">Father: {s.father_name}</p>
+                          <p className="font-mono text-[11px] text-ink/50">{s.student_code}</p>
+                          <p className="mt-0.5 text-xs text-ink/60">{s.class_name}{s.batch ? ` · ${s.batch}` : ''}</p>
                         </div>
-                      )}
-                    </td>
-                    {isLocked && (
-                      <td className="px-4 py-3">
-                        {s.attendance_id && (
-                          <button
-                            onClick={() => {
-                              setEditRequestModal({ attendanceId: s.attendance_id, studentName: s.full_name });
-                              setEditReason('');
-                              setEditSuccess('');
-                            }}
-                            className="rounded-sm border border-ink/20 px-2 py-0.5 text-xs text-ink/70 hover:border-accent hover:text-accent transition"
-                          >
-                            Request Edit
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          </div>
-        </>
-      )}
+                        <FeeBadge paid={s.feePaid} />
+                      </div>
 
-      {/* Submit Button */}
-      {!isLocked && students.length > 0 && (
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full rounded-sm bg-ink px-6 py-2.5 text-sm font-medium text-canvas transition hover:bg-ink/80 disabled:opacity-50 sm:w-auto"
-          >
-            {submitting ? 'Submitting…' : 'Submit & Lock Attendance'}
-          </button>
-        </div>
+                      <div className="mt-3">
+                        {isLocked ? (
+                          <span className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[s.attendance_status] || 'bg-gray-100 text-gray-500'}`}>
+                            {s.attendance_status || '—'}
+                          </span>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-2">
+                            {['present', 'absent', 'leave'].map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => handleStatusChange(s.student_id, opt)}
+                                className={`rounded-sm border px-2 py-1.5 text-xs font-medium capitalize transition ${
+                                  status === opt ? STATUS_COLORS[opt] : 'border-ink/15 text-ink/50'
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {isLocked && s.attendance_id && (
+                        <button
+                          onClick={() => {
+                            setEditRequestModal({ attendanceId: s.attendance_id, studentName: s.full_name });
+                            setEditReason('');
+                            setEditSuccess('');
+                          }}
+                          className="mt-3 w-full rounded-sm border border-ink/20 px-2 py-1.5 text-xs text-ink/70 hover:border-accent hover:text-accent transition"
+                        >
+                          Request Edit
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-sm border border-ink/10 md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
+                    <th className="px-4 py-3">Student ID</th>
+                    <th className="px-4 py-3">Student Name</th>
+                    <th className="px-4 py-3">Father's Name</th>
+                    <th className="px-4 py-3">Class</th>
+                    <th className="px-4 py-3">Batch</th>
+                    <th className="px-4 py-3">Fees</th>
+                    <th className="px-4 py-3">Status</th>
+                    {isLocked && <th className="px-4 py-3">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/5">
+                  {students.map((s) => {
+                    const status = attendanceMap[s.student_id] || 'present';
+                    return (
+                      <tr key={s.student_id} className="hover:bg-ink/2">
+                        <td className="px-4 py-3 font-mono text-xs text-ink/60">{s.student_code}</td>
+                        <td className="px-4 py-3 font-medium text-ink">{s.full_name}</td>
+                        <td className="px-4 py-3 text-ink/70">{s.father_name}</td>
+                        <td className="px-4 py-3 text-ink/70">{s.class_name}</td>
+                        <td className="px-4 py-3 text-ink/70">{s.batch}</td>
+                        <td className="px-4 py-3"><FeeBadge paid={s.feePaid} /></td>
+                        <td className="px-4 py-3">
+                          {isLocked ? (
+                            <span className={`inline-block rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[s.attendance_status] || 'bg-gray-100 text-gray-500'}`}>
+                              {s.attendance_status || '—'}
+                            </span>
+                          ) : (
+                            <div className="flex gap-2">
+                              {['present', 'absent', 'leave'].map((opt) => (
+                                <label key={opt} className="flex cursor-pointer items-center gap-1 text-xs">
+                                  <input
+                                    type="radio"
+                                    name={`status-${s.student_id}`}
+                                    value={opt}
+                                    checked={status === opt}
+                                    onChange={() => handleStatusChange(s.student_id, opt)}
+                                    className="accent-accent"
+                                  />
+                                  <span className="capitalize">{opt}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        {isLocked && (
+                          <td className="px-4 py-3">
+                            {s.attendance_id && (
+                              <button
+                                onClick={() => {
+                                  setEditRequestModal({ attendanceId: s.attendance_id, studentName: s.full_name });
+                                  setEditReason('');
+                                  setEditSuccess('');
+                                }}
+                                className="rounded-sm border border-ink/20 px-2 py-0.5 text-xs text-ink/70 hover:border-accent hover:text-accent transition"
+                              >
+                                Request Edit
+                              </button>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              </div>
+            </>
+          )}
+
+          {/* Submit Button */}
+          {!isLocked && students.length > 0 && (
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full rounded-sm bg-ink px-6 py-2.5 text-sm font-medium text-canvas transition hover:bg-ink/80 disabled:opacity-50 sm:w-auto"
+              >
+                {submitting ? 'Submitting…' : 'Submit & Lock Attendance'}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Request Modal */}

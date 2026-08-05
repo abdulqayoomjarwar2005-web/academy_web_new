@@ -1,4 +1,5 @@
 const AttendanceModel = require('../models/attendanceModel');
+const ClassModel = require('../models/classModel');
 
 // -------------------------------------------------------
 // MARK / SUBMIT ATTENDANCE
@@ -12,9 +13,12 @@ const AttendanceModel = require('../models/attendanceModel');
  */
 const getMarkPage = async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date, class: selectedClass } = req.query;
     if (!date) {
       return res.status(400).json({ message: 'date query parameter is required (YYYY-MM-DD)' });
+    }
+    if (!selectedClass) {
+      return res.status(400).json({ message: 'class query parameter is required — select a single class to mark attendance for' });
     }
 
     const classIn = req.user.role === 'teacher' ? (req.user.classes || []) : undefined;
@@ -22,19 +26,42 @@ const getMarkPage = async (req, res) => {
     if (classIn && classIn.length === 0) {
       return res.status(403).json({ message: 'You have not been assigned to any class yet. Contact the administrator.' });
     }
+    if (classIn && !classIn.includes(selectedClass)) {
+      return res.status(403).json({ message: 'You are not assigned to this class.' });
+    }
 
-    const rawStudents = await AttendanceModel.getStudentsForDate(date, classIn);
+    const rawStudents = await AttendanceModel.getStudentsForDate(date, undefined, selectedClass);
     // Convert fee_status into a simple paid/not-paid flag — never expose amounts here.
     const students = rawStudents.map(({ fee_status, ...rest }) => ({
       ...rest,
       feePaid: fee_status === 'paid',
     }));
-    const summary = await AttendanceModel.getDaySummary(date);
-    const isLocked = await AttendanceModel.isDateLocked(date);
+    const summary = await AttendanceModel.getDaySummary(date, selectedClass);
+    const isLocked = await AttendanceModel.isDateLocked(date, selectedClass);
 
-    return res.status(200).json({ date, students, summary, isLocked });
+    return res.status(200).json({ date, class: selectedClass, students, summary, isLocked });
   } catch (err) {
     console.error('Get mark page error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * GET /api/attendance/my-classes
+ * Classes the current user can mark attendance for — a teacher's assigned
+ * classes only, or every class for admin/owner. Powers the class selector.
+ * Allowed: teacher, admin, owner
+ */
+const getMyClasses = async (req, res) => {
+  try {
+    if (req.user.role === 'teacher') {
+      const classes = (req.user.classes || []).slice().sort();
+      return res.status(200).json({ classes });
+    }
+    const allClasses = await ClassModel.list();
+    return res.status(200).json({ classes: allClasses.map((c) => c.name) });
+  } catch (err) {
+    console.error('Get my classes error:', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -48,17 +75,25 @@ const getMarkPage = async (req, res) => {
  */
 const submitAttendance = async (req, res) => {
   try {
-    const { date, entries } = req.body;
+    const { date, entries, class: selectedClass } = req.body;
 
     if (!date) {
       return res.status(400).json({ message: 'date is required' });
     }
+    if (!selectedClass) {
+      return res.status(400).json({ message: 'class is required — attendance is submitted one class at a time' });
+    }
     if (!Array.isArray(entries) || entries.length === 0) {
       return res.status(400).json({ message: 'entries must be a non-empty array' });
     }
+    if (req.user.role === 'teacher' && !(req.user.classes || []).includes(selectedClass)) {
+      return res.status(403).json({ message: 'You are not assigned to this class.' });
+    }
 
-    // Check if already locked
-    const alreadyLocked = await AttendanceModel.isDateLocked(date);
+    // Check if already locked — scoped to this class only, so locking one
+    // class does not block submitting attendance for a different class
+    // on the same date.
+    const alreadyLocked = await AttendanceModel.isDateLocked(date, selectedClass);
     if (alreadyLocked) {
       return res.status(409).json({
         message: 'Attendance for this date is already submitted and locked. Submit an edit request to make changes.',
@@ -297,6 +332,7 @@ const rejectEditRequest = async (req, res) => {
 
 module.exports = {
   getMarkPage,
+  getMyClasses,
   submitAttendance,
   updateAttendance,
   getHistory,

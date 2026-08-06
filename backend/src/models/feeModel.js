@@ -427,22 +427,22 @@ const FeeModel = {
     let skipped = 0;
 
     for (const student of students.rows) {
-      const existing = await pool.query(
-        `SELECT id FROM fees WHERE student_id = $1 AND fee_month = $2`,
-        [student.id, monthDate]
-      );
-
-      if (existing.rows.length > 0) {
-        skipped++;
-        continue;
-      }
-
-      await pool.query(
+      // ON CONFLICT DO NOTHING relies on the uq_fee_student_month unique
+      // constraint, so this is safe even if run concurrently (e.g. the
+      // scheduled job and a manual "bulk generate" click overlapping).
+      const result = await pool.query(
         `INSERT INTO fees (student_id, fee_month, amount, status, created_by)
-         VALUES ($1, $2, $3, 'unpaid', $4)`,
+         VALUES ($1, $2, $3, 'unpaid', $4)
+         ON CONFLICT (student_id, fee_month) DO NOTHING
+         RETURNING id`,
         [student.id, monthDate, student.monthly_fee, createdBy]
       );
-      created++;
+
+      if (result.rows.length > 0) {
+        created++;
+      } else {
+        skipped++;
+      }
     }
 
     return { created, skipped };

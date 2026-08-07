@@ -221,7 +221,29 @@ const StudentModel = {
       params
     );
 
-    return result.rows[0] || null;
+    const updated = result.rows[0] || null;
+
+    // Fee records snapshot the student's monthly_fee at the moment they're
+    // created (see FeeModel.ensureFeeRecord / bulkGenerateForMonth), so
+    // editing a student's fee later does NOT retroactively change any fee
+    // record that already exists. Without this, an August record generated
+    // before the fee was set correctly keeps showing the old (often 0)
+    // amount on the Fees page even after the student's profile is fixed.
+    // Sync it forward: any UNPAID record for the current month or later
+    // gets updated to the new amount. Paid/partial/waived records are left
+    // alone so we never rewrite money that's already been collected.
+    if (updated && data.monthlyFee !== undefined) {
+      await pool.query(
+        `UPDATE fees
+         SET amount = $1
+         WHERE student_id = $2
+           AND status = 'unpaid'
+           AND fee_month >= DATE_TRUNC('month', CURRENT_DATE)`,
+        [data.monthlyFee, id]
+      );
+    }
+
+    return updated;
   },
 
   /**

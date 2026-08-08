@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { getAttendanceHistory, ATTENDANCE_STATUS_OPTIONS } from '../utils/attendanceApi';
+import { getAttendanceHistory, getMyClasses, ATTENDANCE_STATUS_OPTIONS } from '../utils/attendanceApi';
 
 const STATUS_COLORS = {
   present: 'bg-green-100 text-green-800',
@@ -17,6 +17,11 @@ const AttendanceHistoryPage = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [classes, setClasses] = useState([]);
+
+  useEffect(() => {
+    getMyClasses().then(setClasses).catch(() => {});
+  }, []);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -75,13 +80,16 @@ const AttendanceHistoryPage = () => {
         </div>
         <div>
           <label className="block text-xs font-medium text-ink/60 mb-1">Class</label>
-          <input
-            type="text"
-            placeholder="e.g. Grade 9"
+          <select
             value={classFilter}
             onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}
             className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
-          />
+          >
+            <option value="">All Classes</option>
+            {classes.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <button
           onClick={() => { setDateFilter(''); setStatusFilter(''); setClassFilter(''); setPage(1); }}
@@ -107,6 +115,7 @@ const AttendanceHistoryPage = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-ink">{r.full_name}</p>
+                    <p className="text-xs text-ink/50">S/O-D/O {r.father_name}</p>
                     <p className="font-mono text-[11px] text-ink/50">{r.student_code}</p>
                   </div>
                   <span className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-500'}`}>
@@ -142,6 +151,7 @@ const AttendanceHistoryPage = () => {
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Student ID</th>
                   <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Father Name</th>
                   <th className="px-4 py-3">Class</th>
                   <th className="px-4 py-3">Section</th>
                   <th className="px-4 py-3">Status</th>
@@ -155,6 +165,7 @@ const AttendanceHistoryPage = () => {
                     <td className="px-4 py-3 text-ink/80">{r.attendance_date}</td>
                     <td className="px-4 py-3 font-mono text-xs text-ink/60">{r.student_code}</td>
                     <td className="px-4 py-3 font-medium text-ink">{r.full_name}</td>
+                    <td className="px-4 py-3 text-ink/70">{r.father_name}</td>
                     <td className="px-4 py-3 text-ink/70">{r.class_name}</td>
                     <td className="px-4 py-3 text-ink/70">{r.section}</td>
                     <td className="px-4 py-3">

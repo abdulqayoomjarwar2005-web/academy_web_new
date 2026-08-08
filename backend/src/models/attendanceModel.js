@@ -267,12 +267,13 @@ const AttendanceModel = {
          a.status,
          a.is_locked,
          a.submitted_at,
-         s.id         AS student_id,
-         s.student_id AS student_code,
-         s.student_name,
-         s.class,
-         
-         u.full_name  AS marked_by
+         s.id            AS student_id,
+         s.student_id    AS student_code,
+         s.student_name  AS full_name,
+         s.father_name,
+         s.class         AS class_name,
+         s.batch         AS section,
+         u.full_name     AS marked_by
        FROM attendance a
        JOIN students s ON s.id = a.student_id
        JOIN users u ON u.id = a.teacher_id
@@ -402,8 +403,8 @@ const AttendanceModel = {
          a.status         AS current_status,
          s.student_name,
          s.student_id     AS student_code,
-         s.class,
-         
+         s.class          AS class_name,
+         s.batch          AS section,
          u.full_name      AS requested_by_name,
          rev.full_name    AS reviewed_by_name
        FROM attendance_edit_requests r

@@ -38,6 +38,7 @@ const StudentModel = {
       admissionDate,
       monthlyFee,
       status = 'active',
+      instituteId,
     } = data;
 
     const studentId = await this.generateStudentId();
@@ -45,8 +46,8 @@ const StudentModel = {
     const result = await pool.query(
       `INSERT INTO students
         (student_id, roll_number, student_name, father_name, contact_number,
-         class, batch, admission_date, monthly_fee, status, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         class, batch, admission_date, monthly_fee, status, institute_id, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         studentId,
@@ -59,6 +60,7 @@ const StudentModel = {
         admissionDate,
         monthlyFee,
         status,
+        instituteId || null,
         createdBy,
       ]
     );
@@ -70,7 +72,13 @@ const StudentModel = {
    * Find a student by their internal UUID.
    */
   async findById(id) {
-    const result = await pool.query(`SELECT * FROM students WHERE id = $1`, [id]);
+    const result = await pool.query(
+      `SELECT s.*, i.name AS institute_name
+       FROM students s
+       LEFT JOIN institutes i ON i.id = s.institute_id
+       WHERE s.id = $1`,
+      [id]
+    );
     return result.rows[0] || null;
   },
 
@@ -102,7 +110,7 @@ const StudentModel = {
   /**
    * List students with optional search, filters, sorting, and pagination.
    */
-  async list({ search, class: className, classIn, batch, status, sortBy = 'created_at', sortDir = 'desc', page = 1, limit = 20 }) {
+  async list({ search, class: className, classIn, batch, status, instituteId, sortBy = 'created_at', sortDir = 'desc', page = 1, limit = 20 }) {
     const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
 
@@ -121,31 +129,37 @@ const StudentModel = {
 
     if (search) {
       conditions.push(
-        `(student_name ILIKE $${idx} OR father_name ILIKE $${idx} OR student_id ILIKE $${idx} OR roll_number ILIKE $${idx} OR contact_number ILIKE $${idx})`
+        `(students.student_name ILIKE $${idx} OR students.father_name ILIKE $${idx} OR students.student_id ILIKE $${idx} OR students.roll_number ILIKE $${idx} OR students.contact_number ILIKE $${idx})`
       );
       params.push(`%${search}%`);
       idx++;
     }
 
     if (Array.isArray(classIn) && classIn.length > 0) {
-      conditions.push(`class = ANY($${idx})`);
+      conditions.push(`students.class = ANY($${idx})`);
       params.push(classIn);
       idx++;
     } else if (className) {
-      conditions.push(`class = $${idx}`);
+      conditions.push(`students.class = $${idx}`);
       params.push(className);
       idx++;
     }
 
     if (batch) {
-      conditions.push(`batch = $${idx}`);
+      conditions.push(`students.batch = $${idx}`);
       params.push(batch);
       idx++;
     }
 
     if (status) {
-      conditions.push(`status = $${idx}`);
+      conditions.push(`students.status = $${idx}`);
       params.push(status);
+      idx++;
+    }
+
+    if (instituteId) {
+      conditions.push(`students.institute_id = $${idx}`);
+      params.push(instituteId);
       idx++;
     }
 
@@ -164,9 +178,11 @@ const StudentModel = {
 
     const dataParams = [...params, safeLimit, offset];
     const dataResult = await pool.query(
-      `SELECT * FROM students
+      `SELECT students.*, institutes.name AS institute_name
+       FROM students
+       LEFT JOIN institutes ON institutes.id = students.institute_id
        ${whereClause}
-       ORDER BY ${sortColumn} ${sortDirection}
+       ORDER BY students.${sortColumn} ${sortDirection}
        LIMIT $${idx} OFFSET $${idx + 1}`,
       dataParams
     );
@@ -196,6 +212,7 @@ const StudentModel = {
       admissionDate: 'admission_date',
       monthlyFee: 'monthly_fee',
       status: 'status',
+      instituteId: 'institute_id',
     };
 
     const updates = [];

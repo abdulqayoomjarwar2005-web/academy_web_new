@@ -47,6 +47,11 @@ const studentValidationRules = [
     .optional()
     .isIn(StudentModel.ALLOWED_STATUSES)
     .withMessage(`Status must be one of: ${StudentModel.ALLOWED_STATUSES.join(', ')}`),
+  body('instituteId')
+    .notEmpty()
+    .withMessage('Institute is required')
+    .isUUID()
+    .withMessage('Invalid institute selected'),
 ];
 
 const updateValidationRules = [
@@ -68,6 +73,7 @@ const updateValidationRules = [
     .optional()
     .isIn(StudentModel.ALLOWED_STATUSES)
     .withMessage(`Status must be one of: ${StudentModel.ALLOWED_STATUSES.join(', ')}`),
+  body('instituteId').optional().isUUID().withMessage('Invalid institute selected'),
 ];
 
 const idParamRule = [param('id').isUUID().withMessage('Invalid student id')];
@@ -82,6 +88,7 @@ router.get(
   [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
+    query('instituteId').optional().isUUID(),
   ],
   handleValidation,
   listStudents

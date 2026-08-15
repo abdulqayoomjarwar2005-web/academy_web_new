@@ -38,6 +38,11 @@ const auditRoutes         = require('./routes/auditRoutes');      // Phase 12
 const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13
 const classRoutes         = require('./routes/classRoutes');        // Classes
 const userRoutes          = require('./routes/userRoutes');          // Admin management
+const boardBatchRoutes      = require('./routes/boardBatchRoutes');      // Board/DIT Exams
+const boardCandidateRoutes  = require('./routes/boardCandidateRoutes');  // Board/DIT Exams
+const boardFeeRoutes        = require('./routes/boardFeeRoutes');        // Board/DIT Exams
+const boardExpenseRoutes    = require('./routes/boardExpenseRoutes');    // Board/DIT Exams
+const boardProfitLossRoutes = require('./routes/boardProfitLossRoutes'); // Board/DIT Exams
 
 // ── Phase 12: ensure audit_logs table exists ─────────────────────────────────
 const auditModel = require('./models/auditModel');
@@ -66,6 +71,25 @@ studentDeletionModel.createTable().catch((err) =>
 // ── Fees: auto-generate current month's fee records on boot, then monthly ← NEW
 const { startFeeScheduler } = require('./jobs/feeScheduler');
 startFeeScheduler();
+
+// ── Board/DIT Exams: ensure tables + isolated P&L views exist ────────────────
+const boardBatchModel = require('./models/boardBatchModel');
+const boardCandidateModel = require('./models/boardCandidateModel');
+const boardFeeModel = require('./models/boardFeeModel');
+const boardExpenseModel = require('./models/boardExpenseModel');
+const boardProfitLossModel = require('./models/boardProfitLossModel');
+
+(async () => {
+  try {
+    await boardBatchModel.createTable();
+    await boardCandidateModel.createTable();
+    await boardFeeModel.createTable();
+    await boardExpenseModel.createTable();
+    await boardProfitLossModel.createViews();
+  } catch (err) {
+    console.error('[Board/DIT] setup error:', err.message);
+  }
+})();
 
 const app = express();
 
@@ -98,7 +122,12 @@ app.use('/api/exports',        exportRoutes);     // Phase 11
 app.use('/api/audit',          auditRoutes);      // Phase 12
 app.use('/api/notifications',  notificationRoutes); // Phase 13
 app.use('/api/classes',         classRoutes);        // Classes
-app.use('/api/users',           userRoutes);          // Admin management ← NEW
+app.use('/api/users',           userRoutes);          // Admin management
+app.use('/api/board/batches',       boardBatchRoutes);      // Board/DIT Exams
+app.use('/api/board/candidates',    boardCandidateRoutes);  // Board/DIT Exams
+app.use('/api/board/fees',          boardFeeRoutes);        // Board/DIT Exams
+app.use('/api/board/expenses',      boardExpenseRoutes);    // Board/DIT Exams
+app.use('/api/board/profit-loss',   boardProfitLossRoutes); // Board/DIT Exams ← NEW
 
 // 404 handler
 app.use((req, res) => {

@@ -4,16 +4,19 @@ import DashboardLayout from '../components/DashboardLayout';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { listStudents, deleteStudent, getFilterOptions, STATUS_OPTIONS } from '../utils/studentApi';
+import { listInstitutes } from '../utils/instituteApi';
 
 const StudentListPage = () => {
   const [students, setStudents] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [filterOptions, setFilterOptions] = useState({ classes: [], batches: [] });
+  const [institutes, setInstitutes] = useState([]);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [batchFilter, setBatchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [instituteFilter, setInstituteFilter] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,6 +33,7 @@ const StudentListPage = () => {
         class: classFilter || undefined,
         batch: batchFilter || undefined,
         status: statusFilter || undefined,
+        instituteId: instituteFilter || undefined,
         page,
         limit: 10,
       });
@@ -40,7 +44,7 @@ const StudentListPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, classFilter, batchFilter, statusFilter, page]);
+  }, [search, classFilter, batchFilter, statusFilter, instituteFilter, page]);
 
   useEffect(() => {
     fetchStudents();
@@ -56,6 +60,10 @@ const StudentListPage = () => {
       }
     };
     loadFilters();
+  }, []);
+
+  useEffect(() => {
+    listInstitutes().then(setInstitutes).catch(() => setInstitutes([]));
   }, []);
 
   const handleSearchSubmit = (e) => {
@@ -161,7 +169,23 @@ const StudentListPage = () => {
           ))}
         </select>
 
-        {(classFilter || batchFilter || statusFilter || search) && (
+        <select
+          value={instituteFilter}
+          onChange={(e) => {
+            setPage(1);
+            setInstituteFilter(e.target.value);
+          }}
+          className="rounded-sm border border-ink/15 bg-white px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+        >
+          <option value="">All institutes</option>
+          {institutes.map((inst) => (
+            <option key={inst.id} value={inst.id}>
+              {inst.name}
+            </option>
+          ))}
+        </select>
+
+        {(classFilter || batchFilter || statusFilter || instituteFilter || search) && (
           <button
             onClick={() => {
               setSearch('');
@@ -169,6 +193,7 @@ const StudentListPage = () => {
               setClassFilter('');
               setBatchFilter('');
               setStatusFilter('');
+              setInstituteFilter('');
               setPage(1);
             }}
             className="text-sm font-medium text-accent hover:text-accent/80"
@@ -225,6 +250,10 @@ const StudentListPage = () => {
                   <p className="text-ink/80">{student.batch}</p>
                 </div>
                 <div>
+                  <p className="text-ink/40">Institute</p>
+                  <p className="text-ink/80">{student.institute_name || '—'}</p>
+                </div>
+                <div>
                   <p className="text-ink/40">Monthly Fee</p>
                   <p className="text-ink/80">
                     {Number(student.monthly_fee).toLocaleString(undefined, { minimumFractionDigits: 0 })}
@@ -258,6 +287,7 @@ const StudentListPage = () => {
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Roll No.</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Class</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Batch</th>
+              <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Institute</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Monthly Fee</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Status</th>
               <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider text-xs text-ink/60">Actions</th>
@@ -266,13 +296,13 @@ const StudentListPage = () => {
           <tbody className="divide-y divide-ink/5">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={9} className="px-4 py-8 text-center text-ink/50">
                   Loading students…
                 </td>
               </tr>
             ) : students.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={9} className="px-4 py-8 text-center text-ink/50">
                   No students found.
                 </td>
               </tr>
@@ -292,6 +322,7 @@ const StudentListPage = () => {
                   <td className="px-4 py-3 text-ink/80">{student.roll_number}</td>
                   <td className="px-4 py-3 text-ink/80">{student.class}</td>
                   <td className="px-4 py-3 text-ink/80">{student.batch}</td>
+                  <td className="px-4 py-3 text-ink/80">{student.institute_name || '—'}</td>
                   <td className="px-4 py-3 text-ink/80">
                     {Number(student.monthly_fee).toLocaleString(undefined, {
                       minimumFractionDigits: 0,

@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import { getStudent, createStudent, updateStudent, STATUS_OPTIONS } from '../utils/studentApi';
 import { getMyClasses } from '../utils/teacherApi';
+import { listInstitutes } from '../utils/instituteApi';
 import { useAuth } from '../context/AuthContext';
 
 const emptyForm = {
@@ -15,6 +16,7 @@ const emptyForm = {
   admissionDate: '',
   monthlyFee: '',
   status: 'active',
+  instituteId: '',
 };
 
 const StudentFormPage = () => {
@@ -31,6 +33,11 @@ const StudentFormPage = () => {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [myClasses, setMyClasses] = useState([]);
+  const [institutes, setInstitutes] = useState([]);
+
+  useEffect(() => {
+    listInstitutes({ status: 'active' }).then(setInstitutes).catch(() => setInstitutes([]));
+  }, []);
 
   useEffect(() => {
     if (isTeacher) {
@@ -54,6 +61,7 @@ const StudentFormPage = () => {
           admissionDate: student.admission_date?.slice(0, 10) || '',
           monthlyFee: student.monthly_fee,
           status: student.status,
+          instituteId: student.institute_id || '',
         });
         setStudentCode(student.student_id);
       } catch (err) {
@@ -202,6 +210,23 @@ const StudentFormPage = () => {
               onChange={handleChange('batch')}
               className={inputClass(fieldErrors.batch)}
             />
+          </Field>
+
+          <Field label="Institute" error={fieldErrors.instituteId}>
+            <select
+              required
+              value={form.instituteId}
+              onChange={handleChange('instituteId')}
+              className={inputClass(fieldErrors.instituteId)}
+            >
+              <option value="">Select institute…</option>
+              {institutes.map((inst) => (
+                <option key={inst.id} value={inst.id}>{inst.name}</option>
+              ))}
+            </select>
+            {institutes.length === 0 && (
+              <p className="mt-1 text-xs text-ink/40">No institutes set up yet — add one on the Institutes page first.</p>
+            )}
           </Field>
 
           <Field label="Admission Date" error={fieldErrors.admissionDate}>

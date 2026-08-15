@@ -38,6 +38,7 @@ const auditRoutes         = require('./routes/auditRoutes');      // Phase 12
 const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13
 const classRoutes         = require('./routes/classRoutes');        // Classes
 const userRoutes          = require('./routes/userRoutes');          // Admin management
+const instituteRoutes       = require('./routes/instituteRoutes');      // Affiliated institutes
 const boardBatchRoutes      = require('./routes/boardBatchRoutes');      // Board/DIT Exams
 const boardCandidateRoutes  = require('./routes/boardCandidateRoutes');  // Board/DIT Exams
 const boardFeeRoutes        = require('./routes/boardFeeRoutes');        // Board/DIT Exams
@@ -71,6 +72,12 @@ studentDeletionModel.createTable().catch((err) =>
 // ── Fees: auto-generate current month's fee records on boot, then monthly ← NEW
 const { startFeeScheduler } = require('./jobs/feeScheduler');
 startFeeScheduler();
+
+// ── Institutes: ensure table exists + students.institute_id column ──────────
+const instituteModel = require('./models/instituteModel');
+instituteModel.createTable().catch((err) =>
+  console.error('[Institutes] createTable error:', err.message)
+);
 
 // ── Board/DIT Exams: ensure tables + isolated P&L views exist ────────────────
 const boardBatchModel = require('./models/boardBatchModel');
@@ -123,6 +130,7 @@ app.use('/api/audit',          auditRoutes);      // Phase 12
 app.use('/api/notifications',  notificationRoutes); // Phase 13
 app.use('/api/classes',         classRoutes);        // Classes
 app.use('/api/users',           userRoutes);          // Admin management
+app.use('/api/institutes',      instituteRoutes);      // Affiliated institutes
 app.use('/api/board/batches',       boardBatchRoutes);      // Board/DIT Exams
 app.use('/api/board/candidates',    boardCandidateRoutes);  // Board/DIT Exams
 app.use('/api/board/fees',          boardFeeRoutes);        // Board/DIT Exams

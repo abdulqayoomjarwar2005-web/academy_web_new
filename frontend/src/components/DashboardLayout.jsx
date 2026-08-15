@@ -30,6 +30,7 @@ const navItems = (can) => [
   { to: '/reports/export',        label: 'Reports',       icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8', show: true },
   { to: '/audit',                 label: 'Activity Log',  icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', show: can.audit },
   { to: '/admins',                label: 'Admins',        icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', show: can.admins },
+  { to: '/board',                 label: 'Board / DIT Exams', icon: 'M22 10v6M2 10l10-5 10 5-10 5-10-5zM6 12v5c3 3 9 3 12 0v-5', show: can.board },
 ];
 
 const DashboardLayout = ({ children, title }) => {
@@ -45,6 +46,7 @@ const DashboardLayout = ({ children, title }) => {
     audit:      user?.role === 'owner' || user?.role === 'admin',
     classes:    user?.role === 'owner' || user?.role === 'admin',
     admins:     user?.role === 'owner',
+    board:      user?.role === 'owner' || user?.role === 'admin',
   };
 
   const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };

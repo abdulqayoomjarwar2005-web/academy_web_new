@@ -31,6 +31,7 @@ import TeacherListPage    from './pages/TeacherListPage';
 import TeacherFormPage    from './pages/TeacherFormPage';
 import TeacherProfilePage from './pages/TeacherProfilePage';
 import ClassesPage from './pages/ClassesPage';
+import InstitutesPage from './pages/InstitutesPage';
 
 // Attendance pages (Phase 4)
 import AttendanceDashboardPage    from './pages/AttendanceDashboardPage';
@@ -109,6 +110,7 @@ const App = () => (
         <Route path="/teachers/:id/edit" element={<ProtectedRoute roles={['owner','admin']}><TeacherFormPage /></ProtectedRoute>} />
         <Route path="/teachers/:id"      element={<ProtectedRoute roles={['owner','admin']}><TeacherProfilePage /></ProtectedRoute>} />
         <Route path="/classes" element={<ProtectedRoute roles={['owner','admin']}><ClassesPage /></ProtectedRoute>} />
+        <Route path="/institutes" element={<ProtectedRoute roles={['owner','admin']}><InstitutesPage /></ProtectedRoute>} />
         
         {/* Attendance (Phase 4) */}
         <Route path="/attendance"               element={<ProtectedRoute><AttendanceDashboardPage /></ProtectedRoute>} />

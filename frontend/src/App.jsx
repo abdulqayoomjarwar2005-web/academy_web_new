@@ -61,6 +61,16 @@ import ExpenseFormPage      from './pages/ExpenseFormPage';
 import ProfitLossDashboardPage from './pages/ProfitLossDashboardPage';
 import ProfitLossReportPage    from './pages/ProfitLossReportPage';
 
+/* Board / DIT Exams — fully separate area */
+import BoardDashboardPage         from './pages/BoardDashboardPage';
+import BoardBatchesPage           from './pages/BoardBatchesPage';
+import BoardCandidateListPage     from './pages/BoardCandidateListPage';
+import BoardCandidateFormPage     from './pages/BoardCandidateFormPage';
+import BoardCandidateProfilePage  from './pages/BoardCandidateProfilePage';
+import BoardExpenseListPage       from './pages/BoardExpenseListPage';
+import BoardExpenseFormPage       from './pages/BoardExpenseFormPage';
+import BoardProfitLossPage        from './pages/BoardProfitLossPage';
+
 // Reports & Exports page (Phase 11)
 import ReportsExportPage from './pages/ReportsExportPage';
 
@@ -130,6 +140,18 @@ const App = () => (
         <Route path="/profit-loss/dashboard" element={<ProtectedRoute roles={['owner','admin']}><ProfitLossDashboardPage /></ProtectedRoute>} />
         <Route path="/profit-loss/reports"   element={<ProtectedRoute roles={['owner','admin']}><ProfitLossReportPage /></ProtectedRoute>} />
         <Route path="/profit-loss"           element={<Navigate to="/profit-loss/dashboard" replace />} />
+
+        {/* Board / DIT Exams — fully separate area, Owner & Admin only */}
+        <Route path="/board/batches"            element={<ProtectedRoute roles={['owner','admin']}><BoardBatchesPage /></ProtectedRoute>} />
+        <Route path="/board/candidates/new"     element={<ProtectedRoute roles={['owner','admin']}><BoardCandidateFormPage /></ProtectedRoute>} />
+        <Route path="/board/candidates/:id/edit" element={<ProtectedRoute roles={['owner','admin']}><BoardCandidateFormPage /></ProtectedRoute>} />
+        <Route path="/board/candidates/:id"     element={<ProtectedRoute roles={['owner','admin']}><BoardCandidateProfilePage /></ProtectedRoute>} />
+        <Route path="/board/candidates"         element={<ProtectedRoute roles={['owner','admin']}><BoardCandidateListPage /></ProtectedRoute>} />
+        <Route path="/board/expenses/new"       element={<ProtectedRoute roles={['owner','admin']}><BoardExpenseFormPage /></ProtectedRoute>} />
+        <Route path="/board/expenses/:id/edit"  element={<ProtectedRoute roles={['owner','admin']}><BoardExpenseFormPage /></ProtectedRoute>} />
+        <Route path="/board/expenses"           element={<ProtectedRoute roles={['owner','admin']}><BoardExpenseListPage /></ProtectedRoute>} />
+        <Route path="/board/profit-loss"        element={<ProtectedRoute roles={['owner','admin']}><BoardProfitLossPage /></ProtectedRoute>} />
+        <Route path="/board"                    element={<ProtectedRoute roles={['owner','admin']}><BoardDashboardPage /></ProtectedRoute>} />
 
         {/* Reports & Exports (Phase 11) */}
         <Route path="/reports/export" element={<ProtectedRoute><ReportsExportPage /></ProtectedRoute>} />

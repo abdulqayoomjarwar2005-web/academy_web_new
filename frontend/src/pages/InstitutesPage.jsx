@@ -82,7 +82,7 @@ const InstitutesPage = () => {
     <DashboardLayout title="Institutes">
       <p className="mb-6 max-w-2xl text-sm text-ink/60">
         Manage affiliated academies. Once added, an institute becomes available for selection
-        whenever a student is added or edited.
+        whenever a Board/DIT candidate is enrolled or edited.
       </p>
 
       {message && <div className="mb-4 rounded-sm border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700">{message}</div>}
@@ -118,7 +118,7 @@ const InstitutesPage = () => {
             <thead>
               <tr className="border-b border-ink/10 bg-ink/3 text-left text-xs uppercase tracking-wide text-ink/50">
                 <th className="px-4 py-3">Institute Name</th>
-                <th className="px-4 py-3">Students</th>
+                <th className="px-4 py-3">Candidates</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
@@ -127,7 +127,7 @@ const InstitutesPage = () => {
               {institutes.map((i) => (
                 <tr key={i.id} className="hover:bg-ink/2">
                   <td className="px-4 py-3 font-medium text-ink">{i.name}</td>
-                  <td className="px-4 py-3 text-ink/70">{i.student_count}</td>
+                  <td className="px-4 py-3 text-ink/70">{i.candidate_count}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-sm px-2 py-0.5 text-xs font-medium capitalize ${i.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-ink/10 text-ink/60'}`}>
                       {i.status}

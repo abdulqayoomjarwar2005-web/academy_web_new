@@ -86,7 +86,6 @@ const StudentProfilePage = () => {
           <Detail label="Contact Number" value={student.contact_number} />
           <Detail label="Class" value={student.class} />
           <Detail label="Batch" value={student.batch} />
-          <Detail label="Institute" value={student.institute_name || '—'} />
           <Detail label="Admission Date" value={formatDate(student.admission_date)} />
           <Detail
             label="Monthly Fee"

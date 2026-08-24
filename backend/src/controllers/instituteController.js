@@ -56,10 +56,10 @@ const deleteInstitute = async (req, res) => {
     const existing = await InstituteModel.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Institute not found' });
 
-    const studentCount = await InstituteModel.countStudents(req.params.id);
-    if (studentCount > 0) {
+    const candidateCount = await InstituteModel.countCandidates(req.params.id);
+    if (candidateCount > 0) {
       return res.status(409).json({
-        message: `Cannot delete — ${studentCount} student(s) are linked to this institute`,
+        message: `Cannot delete — ${candidateCount} candidate(s) are linked to this institute`,
       });
     }
 

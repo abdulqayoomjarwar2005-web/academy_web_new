@@ -22,7 +22,6 @@ const createStudent = async (req, res) => {
       admissionDate,
       monthlyFee,
       status,
-      instituteId,
     } = req.body;
 
     if (req.user.role === 'teacher') {
@@ -53,7 +52,6 @@ const createStudent = async (req, res) => {
         admissionDate,
         monthlyFee,
         status,
-        instituteId,
       },
       req.user.id
     );
@@ -102,7 +100,7 @@ const notifyStudentAdded = async (student, actor) => {
  */
 const listStudents = async (req, res) => {
   try {
-    const { search, class: className, batch, status, instituteId, sortBy, sortDir, page, limit } = req.query;
+    const { search, class: className, batch, status, sortBy, sortDir, page, limit } = req.query;
 
     let classIn;
     if (req.user.role === 'teacher') {
@@ -118,7 +116,6 @@ const listStudents = async (req, res) => {
       classIn,
       batch,
       status,
-      instituteId,
       sortBy,
       sortDir,
       page,
@@ -208,7 +205,6 @@ const updateStudent = async (req, res) => {
       admissionDate,
       monthlyFee,
       status,
-      instituteId,
     } = req.body;
 
     if (req.user.role === 'teacher') {
@@ -249,7 +245,6 @@ const updateStudent = async (req, res) => {
       admissionDate,
       monthlyFee,
       status,
-      instituteId,
     });
 
     return res.status(200).json({ message: 'Student updated successfully', student: updated });

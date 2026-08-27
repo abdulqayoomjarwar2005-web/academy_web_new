@@ -88,6 +88,7 @@ const boardProfitLossModel = require('./models/boardProfitLossModel');
 
 (async () => {
   try {
+    await instituteModel.createTable(); // must exist before board_candidates.institute_id FK below
     await boardBatchModel.createTable();
     await boardCandidateModel.createTable();
     await boardFeeModel.createTable();

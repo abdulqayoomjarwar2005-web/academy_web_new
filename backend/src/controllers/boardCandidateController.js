@@ -1,5 +1,6 @@
 const BoardCandidateModel = require('../models/boardCandidateModel');
 const BoardBatchModel = require('../models/boardBatchModel');
+const InstituteModel = require('../models/instituteModel');
 
 const getDashboard = async (req, res) => {
   try {
@@ -13,8 +14,8 @@ const getDashboard = async (req, res) => {
 
 const listCandidates = async (req, res) => {
   try {
-    const { batchId, status, search, page, limit } = req.query;
-    const result = await BoardCandidateModel.list({ batchId, status, search, page, limit });
+    const { batchId, status, instituteId, search, page, limit } = req.query;
+    const result = await BoardCandidateModel.list({ batchId, status, instituteId, search, page, limit });
     return res.status(200).json(result);
   } catch (err) {
     console.error('List board candidates error:', err);
@@ -35,10 +36,13 @@ const getCandidate = async (req, res) => {
 
 const createCandidate = async (req, res) => {
   try {
-    const { candidateName, fatherName, contactNumber, batchId, enrollmentDate } = req.body;
+    const { candidateName, fatherName, contactNumber, batchId, enrollmentDate, instituteId } = req.body;
 
     const batch = await BoardBatchModel.findById(batchId);
     if (!batch) return res.status(400).json({ message: 'Selected batch does not exist' });
+
+    const institute = await InstituteModel.findById(instituteId);
+    if (!institute) return res.status(400).json({ message: 'Selected institute does not exist' });
 
     const candidate = await BoardCandidateModel.create({
       candidateName,
@@ -46,6 +50,7 @@ const createCandidate = async (req, res) => {
       contactNumber,
       batchId,
       enrollmentDate,
+      instituteId,
       createdBy: req.user.id,
     });
 
@@ -61,11 +66,16 @@ const updateCandidate = async (req, res) => {
     const existing = await BoardCandidateModel.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Candidate not found' });
 
-    const { candidateName, fatherName, contactNumber, batchId, enrollmentDate, status } = req.body;
+    const { candidateName, fatherName, contactNumber, batchId, enrollmentDate, status, instituteId } = req.body;
 
     if (batchId !== undefined) {
       const batch = await BoardBatchModel.findById(batchId);
       if (!batch) return res.status(400).json({ message: 'Selected batch does not exist' });
+    }
+
+    if (instituteId !== undefined) {
+      const institute = await InstituteModel.findById(instituteId);
+      if (!institute) return res.status(400).json({ message: 'Selected institute does not exist' });
     }
 
     const candidate = await BoardCandidateModel.update(req.params.id, {
@@ -75,6 +85,7 @@ const updateCandidate = async (req, res) => {
       batchId,
       enrollmentDate,
       status,
+      instituteId,
     });
 
     return res.status(200).json({ message: 'Candidate updated', candidate });

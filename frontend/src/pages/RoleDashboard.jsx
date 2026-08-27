@@ -235,7 +235,7 @@ const RoleDashboard = () => {
   };
 
   return (
-    <DashboardLayout title={dashboard?.title || 'Dashboard'}>
+    <DashboardLayout title={dashboard?.title || 'Dashboard'} hideBack>
 
       {/* Welcome banner */}
       <div className="px-5 py-6 sm:px-8 sm:py-7" style={{ background: 'linear-gradient(135deg, #0B1F3A 0%, #1A3557 100%)', borderRadius: 10, marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>

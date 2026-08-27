@@ -30,6 +30,12 @@ const BoardCandidateModel = {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_board_candidates_status ON board_candidates(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_board_candidates_name   ON board_candidates(candidate_name)`);
 
+    // Reuses the same institutes table the Students module uses (see
+    // instituteModel.js) — one shared list of affiliated academies across
+    // both areas. Nullable since existing candidates predate this field.
+    await pool.query(`ALTER TABLE board_candidates ADD COLUMN IF NOT EXISTS institute_id UUID REFERENCES institutes(id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_board_candidates_institute ON board_candidates(institute_id)`);
+
     await pool.query(`CREATE SEQUENCE IF NOT EXISTS board_candidate_code_seq START 1`);
     await pool.query(`
       CREATE OR REPLACE FUNCTION generate_board_candidate_code()
@@ -53,19 +59,19 @@ const BoardCandidateModel = {
   // CREATE / UPDATE / DELETE
   // -------------------------------------------------------
 
-  async create({ candidateName, fatherName, contactNumber, batchId, enrollmentDate, createdBy }) {
+  async create({ candidateName, fatherName, contactNumber, batchId, enrollmentDate, instituteId, createdBy }) {
     const candidateCode = await this.generateCandidateCode();
     const result = await pool.query(
       `INSERT INTO board_candidates
-         (candidate_code, candidate_name, father_name, contact_number, batch_id, enrollment_date, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (candidate_code, candidate_name, father_name, contact_number, batch_id, enrollment_date, institute_id, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [candidateCode, candidateName, fatherName, contactNumber || null, batchId, enrollmentDate, createdBy]
+      [candidateCode, candidateName, fatherName, contactNumber || null, batchId, enrollmentDate, instituteId || null, createdBy]
     );
     return result.rows[0];
   },
 
-  async update(id, { candidateName, fatherName, contactNumber, batchId, enrollmentDate, status }) {
+  async update(id, { candidateName, fatherName, contactNumber, batchId, enrollmentDate, status, instituteId }) {
     const fields = [];
     const params = [];
     let idx = 1;
@@ -81,6 +87,7 @@ const BoardCandidateModel = {
     if (batchId !== undefined) set('batch_id', batchId);
     if (enrollmentDate !== undefined) set('enrollment_date', enrollmentDate);
     if (status !== undefined) set('status', status);
+    if (instituteId !== undefined) set('institute_id', instituteId);
 
     fields.push(`updated_at = NOW()`);
     params.push(id);
@@ -104,9 +111,10 @@ const BoardCandidateModel = {
 
   async findById(id) {
     const result = await pool.query(
-      `SELECT c.*, b.batch_name
+      `SELECT c.*, b.batch_name, i.name AS institute_name
        FROM board_candidates c
        LEFT JOIN board_batches b ON b.id = c.batch_id
+       LEFT JOIN institutes i ON i.id = c.institute_id
        WHERE c.id = $1`,
       [id]
     );
@@ -117,7 +125,7 @@ const BoardCandidateModel = {
   // LIST (filterable, with fee summary per candidate)
   // -------------------------------------------------------
 
-  async list({ batchId, status, search, page = 1, limit = 20 } = {}) {
+  async list({ batchId, status, instituteId, search, page = 1, limit = 20 } = {}) {
     const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
 
@@ -135,6 +143,11 @@ const BoardCandidateModel = {
       params.push(status);
       idx++;
     }
+    if (instituteId) {
+      conditions.push(`c.institute_id = $${idx}`);
+      params.push(instituteId);
+      idx++;
+    }
     if (search) {
       conditions.push(`(c.candidate_name ILIKE $${idx} OR c.candidate_code ILIKE $${idx} OR c.father_name ILIKE $${idx})`);
       params.push(`%${search}%`);
@@ -147,6 +160,7 @@ const BoardCandidateModel = {
     const baseQuery = `
       FROM board_candidates c
       LEFT JOIN board_batches b ON b.id = c.batch_id
+      LEFT JOIN institutes i ON i.id = c.institute_id
       ${whereClause}
     `;
 
@@ -158,12 +172,13 @@ const BoardCandidateModel = {
          c.id, c.candidate_code, c.candidate_name, c.father_name, c.contact_number,
          c.enrollment_date, c.status, c.created_at,
          b.id AS batch_id, b.batch_name,
+         i.id AS institute_id, i.name AS institute_name,
          COALESCE(SUM(f.amount), 0)       AS total_billed,
          COALESCE(SUM(f.amount_paid), 0)  AS total_paid,
          COALESCE(SUM(f.amount - f.amount_paid) FILTER (WHERE f.status IN ('unpaid','partial')), 0) AS total_due
        ${baseQuery}
        LEFT JOIN board_fees f ON f.candidate_id = c.id
-       GROUP BY c.id, b.id
+       GROUP BY c.id, b.id, i.id
        ORDER BY c.created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, safeLimit, offset]

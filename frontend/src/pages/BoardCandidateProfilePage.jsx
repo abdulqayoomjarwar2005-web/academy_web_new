@@ -252,7 +252,7 @@ const BoardCandidateProfilePage = () => {
           <div className="mb-6 rounded-sm border border-ink/10 bg-white p-5">
             <div className="font-display text-xl text-ink">{candidate.candidate_name}</div>
             <div className="mt-1 text-xs text-ink/40">
-              {candidate.candidate_code} &middot; S/O-D/O {candidate.father_name} &middot; {candidate.batch_name || 'No batch'}
+              {candidate.candidate_code} &middot; S/O-D/O {candidate.father_name} &middot; {candidate.batch_name || 'No batch'} &middot; {candidate.institute_name || 'No institute'}
             </div>
             <div className="mt-3 flex flex-wrap gap-4 text-sm text-ink/70">
               <span>Enrolled: {candidate.enrollment_date?.slice(0, 10)}</span>

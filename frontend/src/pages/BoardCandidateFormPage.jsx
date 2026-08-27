@@ -8,6 +8,7 @@ import {
   listBoardBatches,
   BOARD_CANDIDATE_STATUSES,
 } from '../utils/boardApi';
+import { listInstitutes } from '../utils/instituteApi';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -23,6 +24,8 @@ const BoardCandidateFormPage = () => {
   const [enrollmentDate, setEnrollmentDate] = useState(today());
   const [status, setStatus] = useState('active');
   const [batches, setBatches] = useState([]);
+  const [instituteId, setInstituteId] = useState('');
+  const [institutes, setInstitutes] = useState([]);
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -30,6 +33,10 @@ const BoardCandidateFormPage = () => {
 
   useEffect(() => {
     listBoardBatches({ status: 'active' }).then(setBatches).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    listInstitutes({ status: 'active' }).then(setInstitutes).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -43,6 +50,7 @@ const BoardCandidateFormPage = () => {
         setBatchId(c.batch_id || '');
         setEnrollmentDate(c.enrollment_date?.slice(0, 10) || today());
         setStatus(c.status);
+        setInstituteId(c.institute_id || '');
       })
       .catch(() => setError('Failed to load candidate.'))
       .finally(() => setLoading(false));
@@ -60,6 +68,10 @@ const BoardCandidateFormPage = () => {
       setError('Please select a DIT batch.');
       return;
     }
+    if (!instituteId) {
+      setError('Please select an institute.');
+      return;
+    }
     if (!enrollmentDate) {
       setError('Enrollment date is required.');
       return;
@@ -73,6 +85,7 @@ const BoardCandidateFormPage = () => {
         contactNumber: contactNumber.trim() || undefined,
         batchId,
         enrollmentDate,
+        instituteId,
       };
       if (isEdit) {
         await updateBoardCandidate(id, { ...payload, status });
@@ -146,6 +159,24 @@ const BoardCandidateFormPage = () => {
             </select>
             {batches.length === 0 && (
               <p className="mt-1 text-xs text-ink/40">No active batches yet — add one on the DIT Batches page first.</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ink/70">Institute</label>
+            <select
+              value={instituteId}
+              onChange={(e) => setInstituteId(e.target.value)}
+              className="w-full rounded-sm border border-ink/20 px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              required
+            >
+              <option value="">Select institute…</option>
+              {institutes.map((inst) => (
+                <option key={inst.id} value={inst.id}>{inst.name}</option>
+              ))}
+            </select>
+            {institutes.length === 0 && (
+              <p className="mt-1 text-xs text-ink/40">No institutes set up yet — add one on the Institutes page first.</p>
             )}
           </div>
 

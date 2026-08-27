@@ -8,6 +8,7 @@ import {
   listBoardBatches,
   BOARD_CANDIDATE_STATUSES,
 } from '../utils/boardApi';
+import { listInstitutes } from '../utils/instituteApi';
 
 const fmt = (n) =>
   new Intl.NumberFormat('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(
@@ -31,10 +32,12 @@ const BoardCandidateListPage = () => {
   const [candidates, setCandidates] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [batches, setBatches] = useState([]);
+  const [institutes, setInstitutes] = useState([]);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [batchFilter, setBatchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [instituteFilter, setInstituteFilter] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,6 +53,7 @@ const BoardCandidateListPage = () => {
         search: search || undefined,
         batchId: batchFilter || undefined,
         status: statusFilter || undefined,
+        instituteId: instituteFilter || undefined,
         page,
         limit: 10,
       });
@@ -60,12 +64,16 @@ const BoardCandidateListPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, batchFilter, statusFilter, page]);
+  }, [search, batchFilter, statusFilter, instituteFilter, page]);
 
   useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
 
   useEffect(() => {
     listBoardBatches().then(setBatches).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    listInstitutes().then(setInstitutes).catch(() => {});
   }, []);
 
   const handleSearchSubmit = (e) => {
@@ -138,9 +146,20 @@ const BoardCandidateListPage = () => {
           ))}
         </select>
 
-        {(batchFilter || statusFilter || search) && (
+        <select
+          value={instituteFilter}
+          onChange={(e) => { setPage(1); setInstituteFilter(e.target.value); }}
+          className="rounded-sm border border-ink/15 bg-white px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+        >
+          <option value="">All institutes</option>
+          {institutes.map((inst) => (
+            <option key={inst.id} value={inst.id}>{inst.name}</option>
+          ))}
+        </select>
+
+        {(batchFilter || statusFilter || instituteFilter || search) && (
           <button
-            onClick={() => { setSearch(''); setSearchInput(''); setBatchFilter(''); setStatusFilter(''); setPage(1); }}
+            onClick={() => { setSearch(''); setSearchInput(''); setBatchFilter(''); setStatusFilter(''); setInstituteFilter(''); setPage(1); }}
             className="text-sm font-medium text-accent hover:text-accent/80"
           >
             Clear filters
@@ -173,6 +192,7 @@ const BoardCandidateListPage = () => {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                 <div><p className="text-ink/40">Batch</p><p className="text-ink/80">{c.batch_name || '—'}</p></div>
+                <div><p className="text-ink/40">Institute</p><p className="text-ink/80">{c.institute_name || '—'}</p></div>
                 <div><p className="text-ink/40">Due</p><p className="font-medium text-red-600">Rs {fmt(c.total_due)}</p></div>
               </div>
               <div className="mt-3 flex justify-end gap-4 border-t border-ink/5 pt-3">
@@ -193,6 +213,7 @@ const BoardCandidateListPage = () => {
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Code</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Name</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Batch</th>
+              <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Institute</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Billed</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Paid</th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs text-ink/60">Due</th>
@@ -202,9 +223,9 @@ const BoardCandidateListPage = () => {
           </thead>
           <tbody className="divide-y divide-ink/5">
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-ink/50">Loading candidates…</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-ink/50">Loading candidates…</td></tr>
             ) : candidates.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-ink/50">No candidates found.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-ink/50">No candidates found.</td></tr>
             ) : (
               candidates.map((c) => (
                 <tr key={c.id} className="hover:bg-ink/[0.02]">
@@ -216,6 +237,7 @@ const BoardCandidateListPage = () => {
                     <p className="text-xs text-ink/40">{c.father_name}</p>
                   </td>
                   <td className="px-4 py-3 text-ink/80">{c.batch_name || '—'}</td>
+                  <td className="px-4 py-3 text-ink/80">{c.institute_name || '—'}</td>
                   <td className="px-4 py-3 text-ink/80">Rs {fmt(c.total_billed)}</td>
                   <td className="px-4 py-3 text-ink/80">Rs {fmt(c.total_paid)}</td>
                   <td className="px-4 py-3 font-medium text-red-600">Rs {fmt(c.total_due)}</td>

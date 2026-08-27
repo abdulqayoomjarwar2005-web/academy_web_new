@@ -34,7 +34,7 @@ const navItems = (can) => [
   { to: '/board',                 label: 'Board / DIT Exams', icon: 'M22 10v6M2 10l10-5 10 5-10 5-10-5zM6 12v5c3 3 9 3 12 0v-5', show: can.board },
 ];
 
-const DashboardLayout = ({ children, title }) => {
+const DashboardLayout = ({ children, title, backTo, backLabel = 'Back', hideBack = false }) => {
   const { user, logout } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -190,6 +190,18 @@ const DashboardLayout = ({ children, title }) => {
                   <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
               </button>
+              {title && !hideBack && (
+                <button
+                  onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'none', border: '1px solid #E2E8F0', borderRadius: 6, color: '#0B1F3A', cursor: 'pointer', padding: '0.35rem 0.6rem', fontSize: '0.8rem', flexShrink: 0 }}
+                  aria-label="Go back"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+                  </svg>
+                  <span className="hidden sm:inline">{backLabel}</span>
+                </button>
+              )}
               {title && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                   <div style={{ width: 3, height: 18, background: '#C9A84C', borderRadius: 2, flexShrink: 0 }} />

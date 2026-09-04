@@ -55,6 +55,8 @@ router.get(
     query('limit').optional().isInt({ min: 1, max: 100 }),
     query('status').optional().isIn(['unpaid', 'paid', 'partial', 'waived']),
     query('month').optional().matches(/^\d{4}-\d{2}$/).withMessage('month must be YYYY-MM'),
+    query('paidDate').optional().isISO8601().withMessage('paidDate must be a valid date (YYYY-MM-DD)'),
+    query('paidMonth').optional().matches(/^\d{4}-\d{2}$/).withMessage('paidMonth must be YYYY-MM'),
   ],
   handleValidation,
   listFees

@@ -200,7 +200,9 @@ const FeeModel = {
 
   async list({
     studentId,
-    month,       // YYYY-MM
+    month,       // YYYY-MM (fee_month — the month the fee is billed for)
+    paidDate,    // YYYY-MM-DD (day the payment was actually recorded)
+    paidMonth,   // YYYY-MM (month the payment was actually recorded)
     status,
     class: className,
     classIn,
@@ -234,6 +236,18 @@ const FeeModel = {
     if (month) {
       conditions.push(`TO_CHAR(f.fee_month, 'YYYY-MM') = $${idx}`);
       params.push(month);
+      idx++;
+    }
+
+    if (paidDate) {
+      conditions.push(`DATE(f.paid_at AT TIME ZONE 'UTC') = $${idx}`);
+      params.push(paidDate);
+      idx++;
+    }
+
+    if (paidMonth) {
+      conditions.push(`TO_CHAR(f.paid_at, 'YYYY-MM') = $${idx}`);
+      params.push(paidMonth);
       idx++;
     }
 
@@ -293,6 +307,9 @@ const FeeModel = {
     const countResult = await pool.query(`SELECT COUNT(*) AS total ${baseQuery}`, params);
     const total = parseInt(countResult.rows[0].total, 10);
 
+    const sumResult = await pool.query(`SELECT COALESCE(SUM(f.amount_paid), 0) AS total_collected ${baseQuery}`, params);
+    const totalCollected = parseFloat(sumResult.rows[0].total_collected || 0);
+
     const dataParams = [...params, safeLimit, offset];
     const dataResult = await pool.query(
       `SELECT
@@ -317,6 +334,7 @@ const FeeModel = {
         limit: safeLimit,
         totalPages: Math.ceil(total / safeLimit) || 1,
       },
+      totalCollected,
     };
   },
 

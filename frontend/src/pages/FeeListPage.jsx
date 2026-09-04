@@ -9,6 +9,13 @@ import { useAuth } from '../context/AuthContext';
 // -------------------------------------------------------
 
 const currentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
+const currentDay = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+const dateTimeLabel = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+};
 
 const fmt = (n) =>
   new Intl.NumberFormat('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(
@@ -145,12 +152,19 @@ const FeeListPage = () => {
 
   const [fees, setFees]             = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
+  const [totalCollected, setTotalCollected] = useState(0);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const [actionError, setActionError] = useState('');
 
   // Filters
+  // viewBy controls which date the "Month"/"Date" filter below applies to:
+  //  - 'due'      → fee_month (the month the fee is billed for) — original behaviour
+  //  - 'paidDay'  → the exact day a payment was recorded (paid_at)
+  //  - 'paidMonth'→ the month a payment was recorded (paid_at)
+  const [viewBy, setViewBy]     = useState('due');
   const [month, setMonth]       = useState(currentMonth());
+  const [paidDate, setPaidDate] = useState(currentDay());
   const [status, setStatus]     = useState('');
   const [search, setSearch]     = useState('');
   const [page, setPage]         = useState(1);
@@ -163,15 +177,21 @@ const FeeListPage = () => {
     setLoading(true);
     setError('');
     try {
-      const result = await listFees({ month: month || undefined, status: status || undefined, search: search || undefined, page, limit: 25 });
+      const params = { status: status || undefined, search: search || undefined, page, limit: 25 };
+      if (viewBy === 'due') params.month = month || undefined;
+      if (viewBy === 'paidDay') params.paidDate = paidDate || undefined;
+      if (viewBy === 'paidMonth') params.paidMonth = month || undefined;
+
+      const result = await listFees(params);
       setFees(result.data);
       setPagination(result.pagination);
+      setTotalCollected(result.totalCollected || 0);
     } catch {
       setError('Failed to load fee records.');
     } finally {
       setLoading(false);
     }
-  }, [month, status, search, page]);
+  }, [viewBy, month, paidDate, status, search, page]);
 
   useEffect(() => { fetchFees(); }, [fetchFees]);
 
@@ -239,13 +259,33 @@ const FeeListPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-3">
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => { setMonth(e.target.value); setPage(1); }}
+      <div className="mb-3 flex flex-wrap gap-3">
+        <select
+          value={viewBy}
+          onChange={(e) => { setViewBy(e.target.value); setPage(1); }}
           className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
-        />
+        >
+          <option value="due">View by: Due Month</option>
+          <option value="paidDay">View by: Payment Date (day)</option>
+          <option value="paidMonth">View by: Payment Month</option>
+        </select>
+
+        {viewBy === 'paidDay' ? (
+          <input
+            type="date"
+            value={paidDate}
+            onChange={(e) => { setPaidDate(e.target.value); setPage(1); }}
+            className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+          />
+        ) : (
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => { setMonth(e.target.value); setPage(1); }}
+            className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+          />
+        )}
+
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
@@ -265,6 +305,15 @@ const FeeListPage = () => {
           className="w-full rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none sm:w-64"
         />
       </div>
+
+      {viewBy !== 'due' && (
+        <div className="mb-6 inline-block rounded-sm border border-ink/10 bg-ink/3 px-4 py-2 text-sm">
+          <span className="text-ink/60">
+            Total collected {viewBy === 'paidDay' ? `on ${dateTimeLabel(paidDate)}` : `in ${monthLabel(`${month}-01`)}`}:{' '}
+          </span>
+          <span className="font-semibold text-ink">Rs {fmt(totalCollected)}</span>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>
@@ -328,6 +377,10 @@ const FeeListPage = () => {
                       <p className="text-ink/80">{parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}</p>
                     </div>
                   )}
+                  <div>
+                    <p className="text-ink/40">Paid On</p>
+                    <p className="text-ink/80">{fee.paid_at ? dateTimeLabel(fee.paid_at) : '—'}</p>
+                  </div>
                 </div>
 
                 {!isReadOnly && (
@@ -367,6 +420,7 @@ const FeeListPage = () => {
                   <th className="px-4 py-3">Month</th>
                   {!isReadOnly && <th className="px-4 py-3 text-right">Amount</th>}
                   {!isReadOnly && <th className="px-4 py-3 text-right">Paid</th>}
+                  <th className="px-4 py-3">Paid On</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Receipt</th>
                   {!isReadOnly && <th className="px-4 py-3">Actions</th>}
@@ -392,6 +446,7 @@ const FeeListPage = () => {
                         {parseFloat(fee.amount_paid) > 0 ? `Rs ${fmt(fee.amount_paid)}` : '—'}
                       </td>
                     )}
+                    <td className="px-4 py-3 text-ink/60">{fee.paid_at ? dateTimeLabel(fee.paid_at) : '—'}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={fee.status} />
                     </td>

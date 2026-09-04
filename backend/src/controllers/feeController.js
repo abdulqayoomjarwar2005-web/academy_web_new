@@ -35,7 +35,7 @@ const getDashboard = async (req, res) => {
 // -------------------------------------------------------
 const listFees = async (req, res) => {
   try {
-    const { studentId, month, status, class: className, batch, search, sortBy, sortDir, page, limit } =
+    const { studentId, month, paidDate, paidMonth, status, class: className, batch, search, sortBy, sortDir, page, limit } =
       req.query;
 
     const isTeacher = req.user.role === 'teacher';
@@ -48,6 +48,8 @@ const listFees = async (req, res) => {
     const result = await FeeModel.list({
       studentId,
       month,
+      paidDate,
+      paidMonth,
       status,
       class: classIn ? undefined : className,
       classIn,

@@ -19,7 +19,8 @@ export const getFeeDashboard = async () => {
 
 /**
  * List fee records with optional filters.
- * @param {object} params - studentId, month (YYYY-MM), status, class, batch, search, sortBy, sortDir, page, limit
+ * @param {object} params - studentId, month (YYYY-MM, fee's due month), paidDate (YYYY-MM-DD, day it was paid),
+ *   paidMonth (YYYY-MM, month it was paid), status, class, batch, search, sortBy, sortDir, page, limit
  */
 export const listFees = async (params = {}) => {
   const { data } = await api.get('/fees', { params });

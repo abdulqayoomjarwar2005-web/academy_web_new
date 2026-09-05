@@ -49,6 +49,8 @@ import FeeListPage       from './pages/FeeListPage';
 import FeeReceiptPage    from './pages/FeeReceiptPage';
 import GenerateFeesPage  from './pages/GenerateFeesPage';
 import StudentDuePage    from './pages/StudentDuePage';
+import FamilyPaymentPage from './pages/FamilyPaymentPage';
+import FamilyReceiptPage from './pages/FamilyReceiptPage';
 
 // Defaulter pages (Phase 7)
 import DefaulterDashboardPage from './pages/DefaulterDashboardPage';
@@ -126,6 +128,8 @@ const App = () => (
         <Route path="/fees/dashboard"              element={<ProtectedRoute roles={['owner','admin']}><FeeDashboardPage /></ProtectedRoute>} />
         <Route path="/fees/generate"               element={<ProtectedRoute roles={['owner','admin']}><GenerateFeesPage /></ProtectedRoute>} />
         <Route path="/fees/receipt/:receiptNumber" element={<ProtectedRoute roles={['owner','admin']}><FeeReceiptPage /></ProtectedRoute>} />
+        <Route path="/fees/family-payment"         element={<ProtectedRoute roles={['owner','admin']}><FamilyPaymentPage /></ProtectedRoute>} />
+        <Route path="/fees/family-receipt/:receiptNumber" element={<ProtectedRoute roles={['owner','admin']}><FamilyReceiptPage /></ProtectedRoute>} />
         <Route path="/fees/due/:studentId"         element={<ProtectedRoute><StudentDuePage /></ProtectedRoute>} />
         <Route path="/fees"                        element={<ProtectedRoute><FeeListPage /></ProtectedRoute>} />
 

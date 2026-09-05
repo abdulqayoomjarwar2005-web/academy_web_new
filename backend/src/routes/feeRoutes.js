@@ -14,6 +14,8 @@ const {
   markUnpaid,
   markPartial,
   markWaived,
+  payFamilyFees,
+  getFamilyReceipt,
 } = require('../controllers/feeController');
 
 const authenticate     = require('../middleware/authenticate');
@@ -70,6 +72,16 @@ router.get(
   '/receipt/:receiptNumber',
   authorize('owner', 'admin', 'teacher'),
   getByReceipt
+);
+
+/**
+ * GET /api/fees/family-receipt/:receiptNumber
+ * Fetch a combined family/sibling voucher by its receipt number.
+ */
+router.get(
+  '/family-receipt/:receiptNumber',
+  authorize('owner', 'admin', 'teacher'),
+  getFamilyReceipt
 );
 
 /**
@@ -134,6 +146,26 @@ router.post(
   ],
   handleValidation,
   bulkGenerate
+);
+
+/**
+ * POST /api/fees/family-pay
+ * Pay fee records for two or more students (e.g. siblings) together
+ * and generate a single combined receipt.
+ */
+router.post(
+  '/family-pay',
+  authorize('owner', 'admin'),
+  [
+    body('payments').isArray({ min: 2 }).withMessage('payments must be an array with at least two entries'),
+    body('payments.*.feeId').isUUID().withMessage('Each payment entry must include a valid feeId'),
+    body('payments.*.amountPaid').optional().isFloat({ min: 0 }).withMessage('amountPaid must be a non-negative number'),
+    body('guardianName').optional().isString(),
+    body('contactNumber').optional().isString(),
+    body('notes').optional().isString(),
+  ],
+  handleValidation,
+  payFamilyFees
 );
 
 /**

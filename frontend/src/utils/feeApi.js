@@ -116,3 +116,26 @@ export const markWaived = async (id, notes = '') => {
   const { data } = await api.patch(`/fees/${id}/mark-waived`, { notes });
   return data;
 };
+
+// -------------------------------------------------------
+// FAMILY / COMBINED VOUCHER (two or more students paying together)
+// -------------------------------------------------------
+
+/**
+ * Pay fee records for two or more students (e.g. siblings) together and
+ * generate a single combined receipt.
+ * @param {Array<{feeId: string, amountPaid?: number}>} payments
+ * @param {{ guardianName?: string, contactNumber?: string, notes?: string }} opts
+ */
+export const payFamilyFees = async (payments, opts = {}) => {
+  const { data } = await api.post('/fees/family-pay', { payments, ...opts });
+  return data;
+};
+
+/**
+ * Fetch a combined family receipt (group header + all line items) by receipt number.
+ */
+export const getFamilyReceipt = async (receiptNumber) => {
+  const { data } = await api.get(`/fees/family-receipt/${receiptNumber}`);
+  return data;
+};

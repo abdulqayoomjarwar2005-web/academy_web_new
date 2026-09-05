@@ -493,6 +493,44 @@ CREATE TABLE IF NOT EXISTS password_reset_otps (
 CREATE INDEX IF NOT EXISTS idx_password_reset_otps_user ON password_reset_otps(user_id);
 
 -- =========================================================
+-- PHASE 16: Family / Combined Fee Vouchers
+-- Lets staff collect fees for two or more students (e.g. siblings)
+-- in a single transaction and print one combined receipt.
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS fee_receipt_groups (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    receipt_number  VARCHAR(50) UNIQUE NOT NULL,
+    guardian_name   VARCHAR(150),
+    contact_number  VARCHAR(20),
+    total_amount    NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    student_count   INTEGER NOT NULL DEFAULT 0,
+    notes           TEXT,
+    created_by      UUID REFERENCES users(id),
+    paid_at         TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fee_receipt_groups_receipt ON fee_receipt_groups(receipt_number);
+CREATE INDEX IF NOT EXISTS idx_fee_receipt_groups_paid_at ON fee_receipt_groups(paid_at);
+
+-- Each fee row can optionally belong to a combined/family receipt group.
+ALTER TABLE fees ADD COLUMN IF NOT EXISTS receipt_group_id UUID REFERENCES fee_receipt_groups(id);
+CREATE INDEX IF NOT EXISTS idx_fees_receipt_group ON fees(receipt_group_id);
+
+CREATE SEQUENCE IF NOT EXISTS family_receipt_number_seq START 1;
+
+CREATE OR REPLACE FUNCTION generate_family_receipt_number()
+RETURNS TEXT AS $$
+DECLARE
+    next_val INTEGER;
+BEGIN
+    next_val := nextval('family_receipt_number_seq');
+    RETURN 'FAM-' || LPAD(next_val::TEXT, 6, '0');
+END;
+$$ LANGUAGE plpgsql;
+
+-- =========================================================
 -- Seed: Default Owner Account
 -- Run: node src/config/seed.js to create the first owner.
 -- =========================================================

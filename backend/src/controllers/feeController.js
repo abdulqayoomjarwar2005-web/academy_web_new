@@ -250,6 +250,65 @@ const markWaived = async (req, res) => {
   }
 };
 
+// -------------------------------------------------------
+// POST /api/fees/family-pay
+// Pay fees for two or more students (e.g. siblings) together and
+// generate a single combined receipt.
+// -------------------------------------------------------
+const payFamilyFees = async (req, res) => {
+  try {
+    const { payments, guardianName, contactNumber, notes } = req.body;
+
+    if (!Array.isArray(payments) || payments.length < 2) {
+      return res.status(400).json({ message: 'Select at least two fee records to create a family voucher' });
+    }
+
+    for (const p of payments) {
+      if (!p || typeof p.feeId !== 'string') {
+        return res.status(400).json({ message: 'Each payment entry must include a valid feeId' });
+      }
+      if (p.amountPaid !== undefined && p.amountPaid !== null && Number(p.amountPaid) < 0) {
+        return res.status(400).json({ message: 'amountPaid must be a non-negative number' });
+      }
+    }
+
+    const feeIds = payments.map((p) => p.feeId);
+    if (new Set(feeIds).size !== feeIds.length) {
+      return res.status(400).json({ message: 'Duplicate fee record selected' });
+    }
+
+    const result = await FeeModel.payFamilyFees(payments, req.user.id, { guardianName, contactNumber, notes });
+
+    return res.status(200).json({
+      message: `Combined payment recorded for ${result.group.student_count} students`,
+      receiptNumber: result.group.receipt_number,
+      group: result.group,
+      fees: result.fees,
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    console.error('Family pay error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// -------------------------------------------------------
+// GET /api/fees/family-receipt/:receiptNumber
+// -------------------------------------------------------
+const getFamilyReceipt = async (req, res) => {
+  try {
+    const receipt = await FeeModel.findFamilyReceipt(req.params.receiptNumber);
+    if (!receipt) return res.status(404).json({ message: 'Family receipt not found' });
+
+    return res.status(200).json(receipt);
+  } catch (err) {
+    console.error('Get family receipt error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getDashboard,
   listFees,
@@ -262,4 +321,6 @@ module.exports = {
   markUnpaid,
   markPartial,
   markWaived,
+  payFamilyFees,
+  getFamilyReceipt,
 };

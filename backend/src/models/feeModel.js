@@ -14,6 +14,11 @@ const FeeModel = {
     return result.rows[0].receipt_number;
   },
 
+  async generateFamilyReceiptNumber() {
+    const result = await pool.query(`SELECT generate_family_receipt_number() AS receipt_number`);
+    return result.rows[0].receipt_number;
+  },
+
   // -------------------------------------------------------
   // CREATE / UPSERT
   // -------------------------------------------------------
@@ -464,6 +469,147 @@ const FeeModel = {
     }
 
     return { created, skipped };
+  },
+
+  // -------------------------------------------------------
+  // FAMILY / COMBINED VOUCHER (two or more students paying together)
+  // -------------------------------------------------------
+
+  /**
+   * Pay two or more fee records (usually siblings) in a single transaction
+   * and generate one combined "family" receipt that covers all of them.
+   *
+   * @param {Array<{ feeId: string, amountPaid: number }>} payments
+   * @param {string} createdBy - user id collecting the payment
+   * @param {object} opts - { guardianName, contactNumber, notes }
+   * @returns {{ group: object, fees: object[] }}
+   */
+  async payFamilyFees(payments, createdBy, opts = {}) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Lock and validate every fee row up front so we fail loudly (and
+      // atomically) instead of partially charging a family.
+      const lockedFees = [];
+      for (const { feeId } of payments) {
+        const result = await client.query(
+          `SELECT f.*, s.student_name, s.student_id AS student_code, s.father_name,
+                  s.class, s.batch, s.contact_number
+           FROM fees f
+           JOIN students s ON s.id = f.student_id
+           WHERE f.id = $1
+           FOR UPDATE`,
+          [feeId]
+        );
+        const fee = result.rows[0];
+        if (!fee) {
+          throw Object.assign(new Error(`Fee record not found: ${feeId}`), { statusCode: 404 });
+        }
+        if (fee.status === 'waived') {
+          throw Object.assign(
+            new Error(`${fee.student_name}'s fee for this month is waived and cannot be paid`),
+            { statusCode: 400 }
+          );
+        }
+        lockedFees.push(fee);
+      }
+
+      const distinctStudents = new Set(lockedFees.map((f) => f.student_id));
+      if (distinctStudents.size < 2) {
+        throw Object.assign(
+          new Error('A family voucher needs fee records from at least two different students'),
+          { statusCode: 400 }
+        );
+      }
+
+      const receiptNumber = await this.generateFamilyReceiptNumber();
+
+      let totalAmount = 0;
+      const updatedFees = [];
+
+      for (const { feeId, amountPaid } of payments) {
+        const fee = lockedFees.find((f) => f.id === feeId);
+        const amount = amountPaid !== null && amountPaid !== undefined ? parseFloat(amountPaid) : parseFloat(fee.amount);
+        const newStatus = amount >= parseFloat(fee.amount) ? 'paid' : 'partial';
+
+        const individualReceipt = fee.receipt_number || (await this.generateReceiptNumber());
+
+        const updated = await client.query(
+          `UPDATE fees
+           SET status = $1,
+               amount_paid = $2,
+               paid_at = NOW(),
+               receipt_number = $3,
+               updated_by = $4
+           WHERE id = $5
+           RETURNING *`,
+          [newStatus, amount, individualReceipt, createdBy, feeId]
+        );
+
+        totalAmount += amount;
+        updatedFees.push({ ...updated.rows[0], student_name: fee.student_name, student_code: fee.student_code, class: fee.class, batch: fee.batch, fee_month: fee.fee_month });
+      }
+
+      const groupResult = await client.query(
+        `INSERT INTO fee_receipt_groups
+           (receipt_number, guardian_name, contact_number, total_amount, student_count, notes, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [
+          receiptNumber,
+          opts.guardianName || lockedFees[0].father_name || null,
+          opts.contactNumber || lockedFees[0].contact_number || null,
+          totalAmount,
+          distinctStudents.size,
+          opts.notes || null,
+          createdBy,
+        ]
+      );
+
+      const group = groupResult.rows[0];
+
+      // Link every fee row to the group for later lookups.
+      await client.query(
+        `UPDATE fees SET receipt_group_id = $1 WHERE id = ANY($2::uuid[])`,
+        [group.id, payments.map((p) => p.feeId)]
+      );
+
+      await client.query('COMMIT');
+      return { group, fees: updatedFees };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
+   * Fetch a combined family receipt (group header + every fee/student line item).
+   */
+  async findFamilyReceipt(receiptNumber) {
+    const groupResult = await pool.query(
+      `SELECT g.*, u.full_name AS created_by_name
+       FROM fee_receipt_groups g
+       LEFT JOIN users u ON u.id = g.created_by
+       WHERE g.receipt_number = $1`,
+      [receiptNumber]
+    );
+    const group = groupResult.rows[0];
+    if (!group) return null;
+
+    const itemsResult = await pool.query(
+      `SELECT f.id, f.fee_month, f.amount, f.amount_paid, f.status, f.receipt_number,
+              s.student_name, s.student_id AS student_code, s.father_name, s.class, s.batch
+       FROM fees f
+       JOIN students s ON s.id = f.student_id
+       WHERE f.receipt_group_id = $1
+       ORDER BY s.student_name ASC, f.fee_month ASC`,
+      [group.id]
+    );
+
+    return { group, items: itemsResult.rows };
   },
 };
 

@@ -256,6 +256,14 @@ const FeeListPage = () => {
             Generate Monthly Fees
           </Link>
         )}
+        {!isReadOnly && (
+          <Link
+            to="/fees/family-payment"
+            className="rounded-sm border border-accent/40 bg-accent/10 px-4 py-2 text-sm font-medium text-ink transition hover:bg-accent/20"
+          >
+            Family / Combined Payment
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

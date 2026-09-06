@@ -37,6 +37,20 @@ const ClassModel = {
   },
 
   /**
+   * Given a list of class names, return only the ones that actually exist.
+   * Used to validate student/teacher class assignments against the managed
+   * class list instead of accepting arbitrary free text.
+   */
+  async findByNames(names) {
+    if (!Array.isArray(names) || names.length === 0) return [];
+    const result = await pool.query(
+      `SELECT name FROM classes WHERE name = ANY($1::text[])`,
+      [names]
+    );
+    return result.rows.map((r) => r.name);
+  },
+
+  /**
    * Get a class by id.
    */
   async getById(id) {

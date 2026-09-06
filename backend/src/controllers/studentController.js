@@ -4,6 +4,7 @@ const NotificationModel = require('../models/notificationModel');
 const UserModel = require('../models/userModel');
 const FeeModel = require('../models/feeModel');
 const AuditModel = require('../models/auditModel');
+const ClassModel = require('../models/classModel');
 
 /**
  * POST /api/students
@@ -31,6 +32,11 @@ const createStudent = async (req, res) => {
       }
       if (!assignedClasses.includes(className)) {
         return res.status(403).json({ message: `You can only add students to your assigned class(es): ${assignedClasses.join(', ')}` });
+      }
+    } else {
+      const [validClass] = await ClassModel.findByNames([className]);
+      if (!validClass) {
+        return res.status(400).json({ message: `"${className}" is not a recognized class. Add it from the Classes page first.` });
       }
     }
 
@@ -214,6 +220,11 @@ const updateStudent = async (req, res) => {
       }
       if (className !== undefined && !assignedClasses.includes(className)) {
         return res.status(403).json({ message: `You can only assign students to your assigned class(es): ${assignedClasses.join(', ')}` });
+      }
+    } else if (className !== undefined && className !== existing.class) {
+      const [validClass] = await ClassModel.findByNames([className]);
+      if (!validClass) {
+        return res.status(400).json({ message: `"${className}" is not a recognized class. Add it from the Classes page first.` });
       }
     }
 

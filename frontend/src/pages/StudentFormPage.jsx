@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import { getStudent, createStudent, updateStudent, STATUS_OPTIONS } from '../utils/studentApi';
 import { getMyClasses } from '../utils/teacherApi';
+import { listClasses } from '../utils/classApi';
 import { useAuth } from '../context/AuthContext';
 
 const emptyForm = {
@@ -31,10 +32,17 @@ const StudentFormPage = () => {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [myClasses, setMyClasses] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(!isTeacher);
 
   useEffect(() => {
     if (isTeacher) {
       getMyClasses().then(setMyClasses).catch(() => setMyClasses([]));
+    } else {
+      listClasses()
+        .then((data) => setAllClasses(data.map((c) => c.name)))
+        .catch(() => setAllClasses([]))
+        .finally(() => setClassesLoading(false));
     }
   }, [isTeacher]);
 
@@ -182,14 +190,38 @@ const StudentFormPage = () => {
                 ))}
               </select>
             ) : (
-              <input
-                type="text"
-                required
-                placeholder="e.g. Grade 9"
-                value={form.class}
-                onChange={handleChange('class')}
-                className={inputClass(fieldErrors.class)}
-              />
+              <>
+                <select
+                  required
+                  disabled={classesLoading || (allClasses.length === 0 && !form.class)}
+                  value={form.class}
+                  onChange={handleChange('class')}
+                  className={`${inputClass(fieldErrors.class)} disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <option value="">
+                    {classesLoading
+                      ? 'Loading classes…'
+                      : allClasses.length === 0
+                      ? 'No classes available'
+                      : 'Select class…'}
+                  </option>
+                  {form.class && !allClasses.includes(form.class) && (
+                    <option value={form.class}>{form.class} (no longer in Classes list)</option>
+                  )}
+                  {allClasses.map((cls) => (
+                    <option key={cls} value={cls}>{cls}</option>
+                  ))}
+                </select>
+                {!classesLoading && allClasses.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    No classes added yet.{' '}
+                    <Link to="/classes" className="font-medium underline hover:text-amber-900">
+                      Add a class first
+                    </Link>{' '}
+                    before adding students.
+                  </p>
+                )}
+              </>
             )}
           </Field>
 

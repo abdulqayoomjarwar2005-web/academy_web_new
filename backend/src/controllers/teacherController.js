@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const TeacherModel = require('../models/teacherModel');
 const UserModel = require('../models/userModel');
 const TeacherClassModel = require('../models/teacherClassModel');
+const ClassModel = require('../models/classModel');
 
 /**
  * POST /api/teachers
@@ -171,6 +172,11 @@ const createTeacherAccount = async (req, res) => {
 
     let assignedClasses = [];
     if (Array.isArray(classes) && classes.length > 0) {
+      const validNames = await ClassModel.findByNames(classes);
+      const invalid = classes.filter((c) => !validNames.includes(c));
+      if (invalid.length > 0) {
+        return res.status(400).json({ message: `Unknown class(es): ${invalid.join(', ')}. Add them from the Classes page first.` });
+      }
       assignedClasses = await TeacherClassModel.setClasses(user.id, classes, req.user.id);
     }
 
@@ -234,7 +240,16 @@ const updateTeacherClasses = async (req, res) => {
       return res.status(400).json({ message: 'This teacher does not have a login account yet. Create one first.' });
     }
 
-    const assignedClasses = await TeacherClassModel.setClasses(teacher.user_id, classes || [], req.user.id);
+    const requestedClasses = classes || [];
+    if (requestedClasses.length > 0) {
+      const validNames = await ClassModel.findByNames(requestedClasses);
+      const invalid = requestedClasses.filter((c) => !validNames.includes(c));
+      if (invalid.length > 0) {
+        return res.status(400).json({ message: `Unknown class(es): ${invalid.join(', ')}. Add them from the Classes page first.` });
+      }
+    }
+
+    const assignedClasses = await TeacherClassModel.setClasses(teacher.user_id, requestedClasses, req.user.id);
 
     return res.status(200).json({ message: 'Class assignments updated successfully', classes: assignedClasses });
   } catch (err) {

@@ -7,22 +7,27 @@ import {
   deactivateTeacherAccount,
   resetTeacherPassword,
 } from '../utils/teacherApi';
+import { listClasses } from '../utils/classApi';
 
-// Simple free-text "tag" input for building a list of class names,
-// e.g. "9-A", "10-B" — since classes aren't a fixed enum in this system.
-const ClassTagInput = ({ classes, setClasses }) => {
-  const [draft, setDraft] = useState('');
+// Lets the admin pick classes to assign from the managed Classes list —
+// only classes added on the Classes page can be selected, so a teacher
+// can never end up scoped to a class that doesn't officially exist.
+const ClassTagInput = ({ classes, setClasses, availableClasses, loading }) => {
+  const remaining = availableClasses.filter((c) => !classes.includes(c));
 
-  const addClass = () => {
-    const value = draft.trim();
+  const handleSelect = (e) => {
+    const value = e.target.value;
     if (!value) return;
     if (!classes.includes(value)) setClasses([...classes, value]);
-    setDraft('');
+    e.target.value = '';
   };
 
   return (
     <div>
       <div className="flex flex-wrap gap-2">
+        {classes.length === 0 && (
+          <span className="text-sm text-ink/40">No classes selected</span>
+        )}
         {classes.map((cls) => (
           <span
             key={cls}
@@ -41,27 +46,29 @@ const ClassTagInput = ({ classes, setClasses }) => {
         ))}
       </div>
       <div className="mt-2 flex gap-2">
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addClass();
-            }
-          }}
-          placeholder="e.g. 9-A"
-          className="w-40 rounded-sm border border-ink/15 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-        />
-        <button
-          type="button"
-          onClick={addClass}
-          className="rounded-sm border border-ink/15 px-3 py-2 text-sm font-medium text-ink transition hover:bg-ink/5"
+        <select
+          defaultValue=""
+          onChange={handleSelect}
+          disabled={loading || remaining.length === 0}
+          className="w-52 rounded-sm border border-ink/15 bg-white px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Add class
-        </button>
+          <option value="">
+            {loading
+              ? 'Loading classes…'
+              : remaining.length === 0
+              ? (availableClasses.length === 0 ? 'No classes available' : 'All classes added')
+              : 'Select a class to add…'}
+          </option>
+          {remaining.map((cls) => (
+            <option key={cls} value={cls}>{cls}</option>
+          ))}
+        </select>
       </div>
+      {!loading && availableClasses.length === 0 && (
+        <p className="mt-2 text-xs text-amber-700">
+          No classes have been added yet — add classes from the Classes page first.
+        </p>
+      )}
     </div>
   );
 };
@@ -120,6 +127,10 @@ const TeacherAccountPanel = ({ teacherId }) => {
   const [editingClasses, setEditingClasses] = useState(false);
   const [classDraft, setClassDraft] = useState([]);
 
+  // The full managed class list (from the Classes page) that can be assigned.
+  const [allClasses, setAllClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+
   // Reset-password state
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
@@ -141,6 +152,10 @@ const TeacherAccountPanel = ({ teacherId }) => {
 
   useEffect(() => {
     load();
+    listClasses()
+      .then((data) => setAllClasses(data.map((c) => c.name)))
+      .catch(() => setAllClasses([]))
+      .finally(() => setClassesLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teacherId]);
 
@@ -329,7 +344,12 @@ const TeacherAccountPanel = ({ teacherId }) => {
               Assigned class(es)
             </label>
             <div className="mt-2">
-              <ClassTagInput classes={newClasses} setClasses={setNewClasses} />
+              <ClassTagInput
+                classes={newClasses}
+                setClasses={setNewClasses}
+                availableClasses={allClasses}
+                loading={classesLoading}
+              />
             </div>
           </div>
           <button
@@ -387,7 +407,12 @@ const TeacherAccountPanel = ({ teacherId }) => {
               </div>
             ) : (
               <div className="mt-2">
-                <ClassTagInput classes={classDraft} setClasses={setClassDraft} />
+                <ClassTagInput
+                  classes={classDraft}
+                  setClasses={setClassDraft}
+                  availableClasses={allClasses}
+                  loading={classesLoading}
+                />
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"

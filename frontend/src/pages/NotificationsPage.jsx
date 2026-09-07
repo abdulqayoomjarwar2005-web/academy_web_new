@@ -24,6 +24,10 @@ const TYPE_LABELS = {
   ATTENDANCE_CHANGE_REQUEST: 'Attendance Change Request',
   STUDENT_ADDED:             'Student Added',
   TEACHER_ADDED:             'Teacher Added',
+  FEE_PAID:                  'Fee Paid',
+  FEE_REMOVED:               'Fee Removed',
+  EXPENSE_ADDED:             'Expense Added',
+  FEES_GENERATED:            'Fees Generated',
 };
 
 const TYPE_ICONS = {
@@ -32,6 +36,10 @@ const TYPE_ICONS = {
   ATTENDANCE_CHANGE_REQUEST: '🔄',
   STUDENT_ADDED:             '🎓',
   TEACHER_ADDED:             '👨‍🏫',
+  FEE_PAID:                  '✅',
+  FEE_REMOVED:               '↩️',
+  EXPENSE_ADDED:             '🧾',
+  FEES_GENERATED:            '📑',
 };
 
 const TYPE_STYLES = {
@@ -40,6 +48,10 @@ const TYPE_STYLES = {
   ATTENDANCE_CHANGE_REQUEST: 'bg-blue-50   text-blue-700   border-blue-200',
   STUDENT_ADDED:             'bg-purple-50 text-purple-700 border-purple-200',
   TEACHER_ADDED:             'bg-orange-50 text-orange-700 border-orange-200',
+  FEE_PAID:                  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  FEE_REMOVED:               'bg-red-50    text-red-700    border-red-200',
+  EXPENSE_ADDED:             'bg-rose-50   text-rose-700   border-rose-200',
+  FEES_GENERATED:            'bg-sky-50    text-sky-700    border-sky-200',
 };
 
 function typeIcon(type)  { return TYPE_ICONS[type]  || '🔔'; }

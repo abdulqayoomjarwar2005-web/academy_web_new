@@ -1,4 +1,26 @@
 const FeeModel = require('../models/feeModel');
+const NotificationModel = require('../models/notificationModel');
+const UserModel = require('../models/userModel');
+
+// -------------------------------------------------------
+// OWNER NOTIFICATIONS
+// Whenever an admin (not the owner themself) pays, removes, or generates
+// fees, ping the owner so they stay in the loop. Fire-and-forget — never
+// blocks or fails the underlying request.
+// -------------------------------------------------------
+const notifyOwner = async (type, { title, body, entityType, entityId, entityLabel }, actor) => {
+  if (actor.role !== 'admin') return; // only admin-triggered actions notify the owner
+  try {
+    await NotificationModel.dispatch(type, { title, body, entityType, entityId, entityLabel }, actor.id);
+  } catch (err) {
+    console.error(`[Notifications] ${type} dispatch failed:`, err.message);
+  }
+};
+
+const actorLabel = async (actor) => {
+  const actorUser = await UserModel.findById(actor.id);
+  return actorUser?.full_name || 'An admin';
+};
 
 // -------------------------------------------------------
 // TEACHER VISIBILITY (Phase 14 — Teacher Portal)
@@ -171,6 +193,18 @@ const bulkGenerate = async (req, res) => {
     }
 
     const result = await FeeModel.bulkGenerateForMonth(feeMonth, req.user.id);
+
+    notifyOwner(
+      NotificationModel.TYPES.FEES_GENERATED,
+      {
+        title: 'Monthly fees generated',
+        body: `${await actorLabel(req.user)} generated fee records for ${feeMonth} (${result.created} created, ${result.skipped} skipped)`,
+        entityType: 'fee',
+        entityLabel: feeMonth,
+      },
+      req.user
+    );
+
     return res.status(200).json({
       message: `Generated ${result.created} records, skipped ${result.skipped} existing records`,
       ...result,
@@ -191,6 +225,18 @@ const markPaid = async (req, res) => {
 
     if (!fee) return res.status(404).json({ message: 'Fee record not found' });
 
+    notifyOwner(
+      NotificationModel.TYPES.FEE_PAID,
+      {
+        title: 'Fee payment collected',
+        body: `${await actorLabel(req.user)} marked a fee as paid (receipt ${fee.receipt_number || fee.id})`,
+        entityType: 'fee',
+        entityId: fee.id,
+        entityLabel: fee.receipt_number,
+      },
+      req.user
+    );
+
     return res.status(200).json({ message: 'Fee marked as paid', fee });
   } catch (err) {
     console.error('Mark paid error:', err);
@@ -205,6 +251,18 @@ const markUnpaid = async (req, res) => {
   try {
     const fee = await FeeModel.markUnpaid(req.params.id, req.user.id);
     if (!fee) return res.status(404).json({ message: 'Fee record not found' });
+
+    notifyOwner(
+      NotificationModel.TYPES.FEE_REMOVED,
+      {
+        title: 'Fee payment removed',
+        body: `${await actorLabel(req.user)} marked a fee record back to unpaid`,
+        entityType: 'fee',
+        entityId: fee.id,
+        entityLabel: fee.receipt_number,
+      },
+      req.user
+    );
 
     return res.status(200).json({ message: 'Fee marked as unpaid', fee });
   } catch (err) {
@@ -227,6 +285,18 @@ const markPartial = async (req, res) => {
     const fee = await FeeModel.markPartial(req.params.id, amountPaid, req.user.id);
     if (!fee) return res.status(404).json({ message: 'Fee record not found' });
 
+    notifyOwner(
+      NotificationModel.TYPES.FEE_PAID,
+      {
+        title: 'Partial fee payment collected',
+        body: `${await actorLabel(req.user)} recorded a partial fee payment (receipt ${fee.receipt_number || fee.id})`,
+        entityType: 'fee',
+        entityId: fee.id,
+        entityLabel: fee.receipt_number,
+      },
+      req.user
+    );
+
     return res.status(200).json({ message: 'Fee marked as partial', fee });
   } catch (err) {
     console.error('Mark partial error:', err);
@@ -242,6 +312,18 @@ const markWaived = async (req, res) => {
     const { notes } = req.body;
     const fee = await FeeModel.markWaived(req.params.id, notes || null, req.user.id);
     if (!fee) return res.status(404).json({ message: 'Fee record not found' });
+
+    notifyOwner(
+      NotificationModel.TYPES.FEE_REMOVED,
+      {
+        title: 'Fee waived',
+        body: `${await actorLabel(req.user)} waived a fee record${notes ? ` — ${notes}` : ''}`,
+        entityType: 'fee',
+        entityId: fee.id,
+        entityLabel: fee.receipt_number,
+      },
+      req.user
+    );
 
     return res.status(200).json({ message: 'Fee marked as waived', fee });
   } catch (err) {
@@ -278,6 +360,18 @@ const payFamilyFees = async (req, res) => {
     }
 
     const result = await FeeModel.payFamilyFees(payments, req.user.id, { guardianName, contactNumber, notes });
+
+    notifyOwner(
+      NotificationModel.TYPES.FEE_PAID,
+      {
+        title: 'Family fee payment collected',
+        body: `${await actorLabel(req.user)} collected a combined payment for ${result.group.student_count} students (receipt ${result.group.receipt_number})`,
+        entityType: 'fee',
+        entityId: result.group.id,
+        entityLabel: result.group.receipt_number,
+      },
+      req.user
+    );
 
     return res.status(200).json({
       message: `Combined payment recorded for ${result.group.student_count} students`,

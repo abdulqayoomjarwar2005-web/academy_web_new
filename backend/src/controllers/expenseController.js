@@ -1,4 +1,6 @@
 const ExpenseModel = require('../models/expenseModel');
+const NotificationModel = require('../models/notificationModel');
+const UserModel = require('../models/userModel');
 
 // -------------------------------------------------------
 // GET /api/expenses/dashboard
@@ -67,6 +69,28 @@ const createExpense = async (req, res) => {
       amount,
       createdBy: req.user.id,
     });
+
+    // Fire-and-forget: let the owner know whenever an admin logs an expense.
+    if (req.user.role === 'admin') {
+      (async () => {
+        try {
+          const actorUser = await UserModel.findById(req.user.id);
+          await NotificationModel.dispatch(
+            NotificationModel.TYPES.EXPENSE_ADDED,
+            {
+              title: 'New expense recorded',
+              body: `${actorUser?.full_name || 'An admin'} recorded an expense of Rs ${amount} (${category})`,
+              entityType: 'expense',
+              entityId: expense.id,
+              entityLabel: category,
+            },
+            req.user.id
+          );
+        } catch (err) {
+          console.error('[Notifications] EXPENSE_ADDED dispatch failed:', err.message);
+        }
+      })();
+    }
 
     return res.status(201).json({ message: 'Expense recorded', expense });
   } catch (err) {

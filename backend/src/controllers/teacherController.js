@@ -3,6 +3,7 @@ const TeacherModel = require('../models/teacherModel');
 const UserModel = require('../models/userModel');
 const TeacherClassModel = require('../models/teacherClassModel');
 const ClassModel = require('../models/classModel');
+const NotificationModel = require('../models/notificationModel');
 
 /**
  * POST /api/teachers
@@ -17,6 +18,28 @@ const createTeacher = async (req, res) => {
       { teacherName, contactNumber, subject, salary, joiningDate, status },
       req.user.id
     );
+
+    // Fire-and-forget: let the owner know whenever an admin adds a teacher.
+    if (req.user.role === 'admin') {
+      (async () => {
+        try {
+          const actorUser = await UserModel.findById(req.user.id);
+          await NotificationModel.dispatch(
+            NotificationModel.TYPES.TEACHER_ADDED,
+            {
+              title: 'New teacher added',
+              body: `${actorUser?.full_name || 'An admin'} added ${teacher.teacher_name} (${teacher.subject})`,
+              entityType: 'teacher',
+              entityId: teacher.id,
+              entityLabel: teacher.teacher_name,
+            },
+            req.user.id
+          );
+        } catch (err) {
+          console.error('[Notifications] TEACHER_ADDED dispatch failed:', err.message);
+        }
+      })();
+    }
 
     return res.status(201).json({ message: 'Teacher created successfully', teacher });
   } catch (err) {

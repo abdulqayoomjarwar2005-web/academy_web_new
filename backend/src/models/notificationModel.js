@@ -5,7 +5,8 @@
 //   user_id      INTEGER  NOT NULL  (FK → users.id — recipient)
 //   type         TEXT     NOT NULL  (FEE_RECEIVED | ATTENDANCE_SUBMITTED |
 //                                    ATTENDANCE_CHANGE_REQUEST | STUDENT_ADDED |
-//                                    TEACHER_ADDED)
+//                                    TEACHER_ADDED | FEE_PAID | FEE_REMOVED |
+//                                    EXPENSE_ADDED | FEES_GENERATED)
 //   title        TEXT     NOT NULL  (short headline)
 //   body         TEXT     NOT NULL  (human-readable sentence)
 //   entity_type  TEXT               (e.g. 'fee', 'student', 'teacher', 'attendance')
@@ -20,6 +21,15 @@
 //   ATTENDANCE_CHANGE_REQUEST  → owner, all admins
 //   STUDENT_ADDED              → owner, all admins
 //   TEACHER_ADDED              → owner only
+//   FEE_PAID                   → owner only  (admin marked/collected a fee payment)
+//   FEE_REMOVED                → owner only  (admin marked a fee unpaid/waived)
+//   EXPENSE_ADDED               → owner only  (admin recorded an expense)
+//   FEES_GENERATED              → owner only  (admin bulk-generated monthly fees)
+//
+// FEE_PAID / FEE_REMOVED / EXPENSE_ADDED / FEES_GENERATED / TEACHER_ADDED are
+// only ever dispatched when the acting user is an admin (never for the
+// owner's own actions), so the owner is kept in the loop on everything an
+// admin does financially or administratively, without spamming other admins.
 
 const pool = require('../config/db');
 
@@ -117,6 +127,10 @@ async function dispatch(type, payload, actorId = null) {
         break;
 
       case TYPES.TEACHER_ADDED:
+      case TYPES.FEE_PAID:
+      case TYPES.FEE_REMOVED:
+      case TYPES.EXPENSE_ADDED:
+      case TYPES.FEES_GENERATED:
         recipientIds = await getUserIdsByRoles(['owner']);
         break;
 
@@ -223,6 +237,10 @@ const TYPES = Object.freeze({
   ATTENDANCE_CHANGE_REQUEST:  'ATTENDANCE_CHANGE_REQUEST',
   STUDENT_ADDED:              'STUDENT_ADDED',
   TEACHER_ADDED:              'TEACHER_ADDED',
+  FEE_PAID:                   'FEE_PAID',
+  FEE_REMOVED:                'FEE_REMOVED',
+  EXPENSE_ADDED:              'EXPENSE_ADDED',
+  FEES_GENERATED:             'FEES_GENERATED',
 });
 
 module.exports = {

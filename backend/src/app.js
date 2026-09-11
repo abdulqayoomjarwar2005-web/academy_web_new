@@ -36,6 +36,7 @@ const profitLossRoutes    = require('./routes/profitLossRoutes'); // Phase 9
 const exportRoutes        = require('./routes/exportRoutes');     // Phase 11
 const auditRoutes         = require('./routes/auditRoutes');      // Phase 12
 const notificationRoutes  = require('./routes/notificationRoutes'); // Phase 13
+const messageRoutes       = require('./routes/messageRoutes');      // Phase 17 (Teacher Messages)
 const classRoutes         = require('./routes/classRoutes');        // Classes
 const userRoutes          = require('./routes/userRoutes');          // Admin management
 const instituteRoutes       = require('./routes/instituteRoutes');      // Affiliated institutes
@@ -55,6 +56,12 @@ auditModel.createTable().catch((err) =>
 const notificationModel = require('./models/notificationModel');
 notificationModel.createTable().catch((err) =>
   console.error('[Notifications] createTable error:', err.message)
+);
+
+// ── Phase 17: ensure teacher_messages table exists ────────────────────────────
+const messageModel = require('./models/messageModel');
+messageModel.createTable().catch((err) =>
+  console.error('[Messages] createTable error:', err.message)
 );
 
 // ── Classes: ensure classes table exists ──────────────────────────────────────
@@ -129,6 +136,7 @@ app.use('/api/profit-loss',    profitLossRoutes); // Phase 9
 app.use('/api/exports',        exportRoutes);     // Phase 11
 app.use('/api/audit',          auditRoutes);      // Phase 12
 app.use('/api/notifications',  notificationRoutes); // Phase 13
+app.use('/api/messages',       messageRoutes);       // Phase 17 (Teacher Messages)
 app.use('/api/classes',         classRoutes);        // Classes
 app.use('/api/users',           userRoutes);          // Admin management
 app.use('/api/institutes',      instituteRoutes);      // Affiliated institutes

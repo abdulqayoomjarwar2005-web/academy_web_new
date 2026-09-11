@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import FeeReminderPopup from './FeeReminderPopup';
+import { getUnreadMessageCount } from '../utils/messageApi';
 
 const roleLabels = { owner: 'Owner', admin: 'Administrator', teacher: 'Teacher' };
 const roleBadgeStyle = {
@@ -23,6 +25,7 @@ const navItems = (can) => [
   { to: '/teachers',              label: 'Teachers',      icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', show: can.teachers },
   { to: '/classes',               label: 'Classes',       icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z', show: can.classes },
   { to: '/attendance',            label: 'Attendance',    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', show: true },
+  { to: '/messages',              label: 'Messages',      icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', show: true, badgeKey: 'messages' },
   { to: '/fees/dashboard',        label: 'Fees',          icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', show: true },
   { to: '/defaulters',            label: 'Unpaid Fees',   icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', show: true, alert: true },
   { to: '/expenses/dashboard',    label: 'Expenses',      icon: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z', show: can.expenses },
@@ -39,6 +42,29 @@ const DashboardLayout = ({ children, title, backTo, backLabel = 'Back', hideBack
   const navigate  = useNavigate();
   const location  = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const pollRef = useRef(null);
+
+  const refreshUnreadMessages = useCallback(async () => {
+    try {
+      const data = await getUnreadMessageCount();
+      setUnreadMessages(data.count ?? 0);
+    } catch {
+      // silently ignore — may not be logged in yet
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshUnreadMessages();
+    pollRef.current = setInterval(refreshUnreadMessages, 30_000);
+    return () => clearInterval(pollRef.current);
+  }, [refreshUnreadMessages]);
+
+  // Also refresh right after navigating (e.g. leaving the Messages page
+  // after reading messages there) so the sidebar badge count stays fresh.
+  useEffect(() => {
+    refreshUnreadMessages();
+  }, [location.pathname, refreshUnreadMessages]);
 
   const can = {
     teachers:   user?.role === 'owner' || user?.role === 'admin',
@@ -79,8 +105,9 @@ const DashboardLayout = ({ children, title, backTo, backLabel = 'Back', hideBack
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0.6rem' }}>
-        {visibleNav.map(({ to, label, icon, alert }) => {
+        {visibleNav.map(({ to, label, icon, alert, badgeKey }) => {
           const active = isActive(to);
+          const badgeCount = badgeKey === 'messages' ? unreadMessages : 0;
           return (
             <Link
               key={to}
@@ -98,7 +125,16 @@ const DashboardLayout = ({ children, title, backTo, backLabel = 'Back', hideBack
               onMouseLeave={e => { if (!active) { e.currentTarget.style.color = alert ? '#FDA4AF' : 'rgba(244,246,249,0.72)'; e.currentTarget.style.background = 'transparent'; }}}
             >
               <Icon d={icon} size={16} />
-              {label}
+              <span style={{ flex: 1 }}>{label}</span>
+              {badgeCount > 0 && (
+                <span style={{
+                  minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+                  background: '#C9A84C', color: '#0B1F3A', fontSize: '0.62rem', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {badgeCount > 99 ? '99+' : badgeCount}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -140,6 +176,8 @@ const DashboardLayout = ({ children, title, backTo, backLabel = 'Back', hideBack
 
   return (
     <div style={{ minHeight: '100vh', background: '#F4F6F9', fontFamily: "'Inter', system-ui, sans-serif", display: 'flex' }}>
+
+      <FeeReminderPopup />
 
       {/* Desktop sidebar */}
       <aside

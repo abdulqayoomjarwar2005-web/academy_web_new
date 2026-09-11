@@ -29,6 +29,11 @@ const TYPE_ICONS = {
   ATTENDANCE_CHANGE_REQUEST: '🔄',
   STUDENT_ADDED:             '🎓',
   TEACHER_ADDED:             '👨‍🏫',
+  FEE_PAID:                  '✅',
+  FEE_REMOVED:               '↩️',
+  EXPENSE_ADDED:             '🧾',
+  FEES_GENERATED:            '📑',
+  MESSAGE_RECEIVED:          '✉️',
 };
 
 function typeIcon(type) {

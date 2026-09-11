@@ -152,6 +152,20 @@ async function dispatch(type, payload, actorId = null) {
   }
 }
 
+/**
+ * Send a notification directly to a single, specific user — bypassing
+ * role-based recipient resolution. Used for things like a direct message
+ * from an admin to one particular teacher.
+ */
+async function notifyUser(userId, payload) {
+  try {
+    if (!userId) return;
+    await insertForUsers([userId], payload);
+  } catch (err) {
+    console.error('[Notifications] notifyUser error:', err.message);
+  }
+}
+
 // ── Read ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -241,12 +255,14 @@ const TYPES = Object.freeze({
   FEE_REMOVED:                'FEE_REMOVED',
   EXPENSE_ADDED:              'EXPENSE_ADDED',
   FEES_GENERATED:             'FEES_GENERATED',
+  MESSAGE_RECEIVED:           'MESSAGE_RECEIVED',
 });
 
 module.exports = {
   TYPES,
   createTable,
   dispatch,
+  notifyUser,
   listForUser,
   unreadCount,
   markRead,

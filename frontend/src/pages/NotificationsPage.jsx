@@ -28,6 +28,7 @@ const TYPE_LABELS = {
   FEE_REMOVED:               'Fee Removed',
   EXPENSE_ADDED:             'Expense Added',
   FEES_GENERATED:            'Fees Generated',
+  MESSAGE_RECEIVED:          'Message Received',
 };
 
 const TYPE_ICONS = {
@@ -40,6 +41,7 @@ const TYPE_ICONS = {
   FEE_REMOVED:               '↩️',
   EXPENSE_ADDED:             '🧾',
   FEES_GENERATED:            '📑',
+  MESSAGE_RECEIVED:          '✉️',
 };
 
 const TYPE_STYLES = {
@@ -52,6 +54,7 @@ const TYPE_STYLES = {
   FEE_REMOVED:               'bg-red-50    text-red-700    border-red-200',
   EXPENSE_ADDED:             'bg-rose-50   text-rose-700   border-rose-200',
   FEES_GENERATED:            'bg-sky-50    text-sky-700    border-sky-200',
+  MESSAGE_RECEIVED:          'bg-indigo-50 text-indigo-700 border-indigo-200',
 };
 
 function typeIcon(type)  { return TYPE_ICONS[type]  || '🔔'; }

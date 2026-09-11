@@ -55,7 +55,7 @@ const FeeReceiptPage = () => {
       ) : error ? (
         <div style={{ padding: '0.75rem 1rem', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.85rem' }}>{error}</div>
       ) : fee ? (
-        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+        <div className="receipt-print-wrapper" style={{ maxWidth: 520, margin: '0 auto' }}>
           <div id="receipt-card" style={{ background: 'white', borderRadius: 10, boxShadow: '0 4px 24px rgba(11,31,58,0.12)', overflow: 'hidden' }}>
 
             {/* Header band */}

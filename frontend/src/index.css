@@ -58,11 +58,65 @@ body {
   border-radius: 1px;
 }
 
-/* ── Print styles for receipts ── */
+/* ── Print styles for receipts (80mm thermal printer roll) ──
+   Change the two "80mm" values below to "58mm" if your printer
+   uses the narrower 58mm paper instead. */
 @media print {
-  header, .no-print { display: none !important; }
-  body { background: white; }
-  #receipt-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+  @page {
+    size: 80mm auto;   /* auto height = one page sized to the receipt, no trailing blank page */
+    margin: 0;
+  }
+
+  html, body {
+    width: 80mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  header, footer, aside, .no-print { display: none !important; }
+
+  main {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .receipt-print-wrapper {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  #receipt-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 10px;
+  }
+
+  /* Thermal printers can't render gradients/colored backgrounds well
+     and it wastes paper/ink — flatten everything to plain black on white. */
+  #receipt-card * {
+    background: white !important;
+    background-image: none !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border-color: #000 !important;
+  }
+
+  #receipt-card img {
+    filter: none !important;
+    max-width: 45px !important;
+  }
+
+  #receipt-card table {
+    font-size: 9px;
+  }
 }
 
 /* ── Focus ring ── */

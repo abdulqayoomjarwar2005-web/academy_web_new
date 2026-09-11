@@ -83,6 +83,9 @@ import AuditLogPage from './pages/AuditLogPage';
 // Notifications page (Phase 13)
 import NotificationsPage from './pages/NotificationsPage';
 
+// Teacher Messages page (Phase 17)
+import MessagesPage from './pages/MessagesPage';
+
 // Admin management page ← NEW
 import AdminListPage from './pages/AdminListPage';
 
@@ -167,6 +170,9 @@ const App = () => (
 
         {/* Notifications (Phase 13) — all authenticated users */}
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+
+        {/* Teacher Messages (Phase 17) — all authenticated users */}
+        <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
 
         {/* Admins — owner only ← NEW */}
         <Route path="/admins" element={<ProtectedRoute roles={['owner']}><AdminListPage /></ProtectedRoute>} />

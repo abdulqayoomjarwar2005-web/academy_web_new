@@ -531,6 +531,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =========================================================
+-- PHASE 17: Teacher Messages / Notes
+-- Lets an owner or admin send a note or message to a specific teacher —
+-- optionally tied to a particular student issue — that shows up in that
+-- teacher's inbox and as a notification.
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS teacher_messages (
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_id          UUID NOT NULL REFERENCES users(id),
+    recipient_user_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    student_id         UUID REFERENCES students(id) ON DELETE SET NULL,
+    subject            VARCHAR(200) NOT NULL,
+    body               TEXT NOT NULL,
+    is_read            BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at            TIMESTAMP WITH TIME ZONE,
+    created_at         TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_teacher_messages_recipient ON teacher_messages(recipient_user_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_teacher_messages_sender ON teacher_messages(sender_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_teacher_messages_student ON teacher_messages(student_id);
+
+-- =========================================================
 -- Seed: Default Owner Account
 -- Run: node src/config/seed.js to create the first owner.
 -- =========================================================
